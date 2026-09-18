@@ -243,6 +243,15 @@
       for (let la = -75; la <= 75; la += 15) for (let lo = 0; lo < 360; lo += 3) push(la, lo, la, lo + 3);
       for (let lo = 0; lo < 360; lo += 15) for (let la = -90; la < 90; la += 3) push(la, lo, la + 3, lo);
       earthGroup.add(segments(arr, '#7fd7ff', 0.16));
+      // тонкая сетка через 5° (без линий, совпадающих с основной)
+      const fine = [];
+      const pushF = (la1, lo1, la2, lo2) => {
+        const p = (la, lo) => { const c = Math.cos(la * DEG); return [R * c * Math.cos(lo * DEG), R * Math.sin(la * DEG), -R * c * Math.sin(lo * DEG)]; };
+        const a = p(la1, lo1), b = p(la2, lo2); fine.push(a[0], a[1], a[2], b[0], b[1], b[2]);
+      };
+      for (let la = -85; la <= 85; la += 5) { if (la % 15 === 0) continue; for (let lo = 0; lo < 360; lo += 4) pushF(la, lo, la, lo + 4); }
+      for (let lo = 0; lo < 360; lo += 5) { if (lo % 15 === 0) continue; for (let la = -85; la < 85; la += 5) pushF(la, lo, la + 5, lo); }
+      earthGroup.add(segments(fine, '#7fd7ff', 0.05));
       const eq = circle(1.006, '#7fd7ff', 0.5, 'xz'); earthGroup.add(eq);
       const pm = circle(1.006, '#7fd7ff', 0.3, 'xy'); earthGroup.add(pm);
       // ось
@@ -250,21 +259,64 @@
       const n = makeLabel('N', 'lbl-tiny'); n.position.set(0, 1.8, 0); earthGroup.add(n);
     })();
 
-    S.setContinents = function (topology) {
+    S.setWorld = function (topology) {
       try {
-        const mesh = topojson.mesh(topology, topology.objects.land);
-        const arr = [];
         const R = 1.008;
         const p = (lo, la) => { const c = Math.cos(la * DEG); return [R * c * Math.cos(lo * DEG), R * Math.sin(la * DEG), -R * c * Math.sin(lo * DEG)]; };
-        mesh.coordinates.forEach(line => {
-          for (let i = 1; i < line.length; i++) {
-            const a = p(line[i - 1][0], line[i - 1][1]), b = p(line[i][0], line[i][1]);
-            arr.push(a[0], a[1], a[2], b[0], b[1], b[2]);
-          }
-        });
-        earthGroup.add(segments(arr, '#bfeaff', 0.55));
-      } catch (e) { console.warn('continents', e); }
+        const toSegs = mesh => {
+          const arr = [];
+          mesh.coordinates.forEach(line => {
+            for (let i = 1; i < line.length; i++) {
+              const a = p(line[i - 1][0], line[i - 1][1]), b = p(line[i][0], line[i][1]);
+              arr.push(a[0], a[1], a[2], b[0], b[1], b[2]);
+            }
+          });
+          return arr;
+        };
+        if (topology.objects.countries) {
+          const obj = topology.objects.countries;
+          earthGroup.add(segments(toSegs(topojson.mesh(topology, obj, (a, b) => a === b)), '#bfeaff', 0.55));   // побережья
+          earthGroup.add(segments(toSegs(topojson.mesh(topology, obj, (a, b) => a !== b)), '#bfeaff', 0.2));    // границы государств
+        } else {
+          earthGroup.add(segments(toSegs(topojson.mesh(topology, topology.objects.land)), '#bfeaff', 0.55));
+        }
+      } catch (e) { console.warn('world', e); }
     };
+    S.setContinents = S.setWorld;
+
+    // города: точки на глобусе + подписи (видны при приближении или в режиме выбора места)
+    const cityLabels = [];
+    let cityGroup = null;
+    S.setCities = function (list) {
+      if (cityGroup) { earthGroup.remove(cityGroup); cityLabels.length = 0; }
+      cityGroup = new THREE.Group(); earthGroup.add(cityGroup);
+      const pos = [];
+      const R = 1.01;
+      list.forEach(cty => {
+        const la = cty.lat * DEG, lo = cty.lon * DEG, c = Math.cos(la);
+        const v = new THREE.Vector3(R * c * Math.cos(lo), R * Math.sin(la), -R * c * Math.sin(lo));
+        pos.push(v.x, v.y, v.z);
+        const l = makeLabel(cty.name, 'lbl-city'); l.position.copy(v); l.visible = false;
+        cityGroup.add(l); cityLabels.push({ obj: l, pos: v, major: !!cty.major });
+      });
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      const m = new THREE.PointsMaterial({ size: 4, sizeAttenuation: false, map: TEX_STAR, color: C('#f5c56b'), transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
+      cityGroup.add(new THREE.Points(g, m));
+    };
+    const camLocal = new THREE.Vector3();
+    function updateCityLabels() {
+      if (!cityLabels.length) return;
+      const dist = camera.position.length();
+      const show = S.mode === 'geo' && (S.pickGlobe || dist < 3.8);
+      if (!show) { cityLabels.forEach(c => { c.obj.visible = false; }); return; }
+      camLocal.copy(camera.position); earthGroup.worldToLocal(camLocal);
+      const showMinor = dist < 2.6;   // второстепенные города — только при сильном приближении
+      cityLabels.forEach(c => {
+        // подпись видна, если точка обращена к камере
+        c.obj.visible = (c.major || showMinor) && c.pos.dot(camLocal) > c.pos.lengthSq();
+      });
+    }
 
     // маркер наблюдателя
     const locGroup = new THREE.Group(); earthGroup.add(locGroup);
@@ -608,6 +660,7 @@
           if (fly.t >= 1) fly = null;
         }
         controls.update();
+        updateCityLabels();
         if (S.options.bloom) composer.render(); else renderer.render(scene, camera);
         labelRenderer.render(scene, camera);
       }

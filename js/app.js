@@ -51,6 +51,18 @@
     if (persist !== false) save();
   }
 
+  // ---------- города для глобуса ----------
+  function cityList() {
+    const out = NS.PRESETS.filter(p => p.en !== 'North Pole' && p.en !== 'Greenwich').map(p => ({ name: p.name, lat: p.lat, lon: p.lon, major: true }));
+    const near = (a, b) => Math.hypot(a.lat - b.lat, (a.lon - b.lon) * Math.cos(a.lat * Math.PI / 180)) < 0.5;
+    Object.values(NS.TZ_HINTS).forEach(h => {
+      if (typeof h === 'string') return;
+      const c = { name: (NS.L.code === 'ru' && h[3]) || h[2], lat: h[0], lon: h[1], major: false };
+      if (!out.some(o => near(o, c))) out.push(c);
+    });
+    return out;
+  }
+
   // ---------- место при первом запуске ----------
   function defaultObserver() {
     const i = NS.PRESETS.findIndex(p => p.en === 'Greenwich');
@@ -218,20 +230,33 @@
   }
 
   // ---------- место ----------
+  let prevObserver = null, locApplied = false;
+  function previewObserver(o) { setObserver(o, false); }
+  function previewFromInputs() {
+    const lat = parseFloat($('loc-lat').value), lon = parseFloat($('loc-lon').value);
+    if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return;
+    previewObserver({ name: $('loc-label').value.trim() || (lat.toFixed(2) + ', ' + lon.toFixed(2)), lat, lon });
+  }
   function openLocation() {
     const m = $('modal-location'); m.hidden = false;
+    prevObserver = state.observer; locApplied = false;
     $('loc-lat').value = state.observer.lat.toFixed(4);
     $('loc-lon').value = state.observer.lon.toFixed(4);
     $('loc-label').value = state.observer.name;
     $('loc-preset').value = '';
     scene.setPickGlobe(true);
   }
-  function closeLocation() { $('modal-location').hidden = true; scene.setPickGlobe(false); }
+  function closeLocation() {
+    if ($('modal-location').hidden) return;
+    $('modal-location').hidden = true; scene.setPickGlobe(false);
+    if (!locApplied && prevObserver) setObserver(prevObserver, false);   // отмена — вернуть прежнее место
+  }
   function applyLocation() {
     const lat = parseFloat($('loc-lat').value), lon = parseFloat($('loc-lon').value);
     if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) { UI.toast(NS.t('checkCoords')); return; }
     const presetIdx = NS.PRESETS.findIndex(p => p.lat === lat && p.lon === lon);
     const name = presetIdx >= 0 ? NS.PRESETS[presetIdx].name : ($('loc-label').value.trim() || (lat.toFixed(2) + ', ' + lon.toFixed(2)));
+    locApplied = true;
     setObserver({ name, lat, lon, preset: presetIdx >= 0 ? presetIdx : undefined });
     closeLocation();
     UI.toast(NS.t('placeSet', { n: name }));
@@ -261,6 +286,7 @@
         let best = null, bd = 1e9;
         NS.PRESETS.forEach(p => { const d = Math.hypot(p.lat - lat, (p.lon - lon) * Math.cos(lat * Math.PI / 180)); if (d < bd) { bd = d; best = p; } });
         if (best && bd < 3) $('loc-label').value = best.name;
+        previewFromInputs();
       },
     });
     NS.scene = scene; NS.state = state;
@@ -268,7 +294,8 @@
     syncToolbar();
 
     // континенты (необязательно)
-    fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json').then(r => r.json()).then(t => scene.setContinents(t)).catch(() => {});
+    fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(r => r.json()).then(t => scene.setWorld(t)).catch(() => {});
+    scene.setCities(cityList());
 
     lightUpdate(true);
     heavyUpdate();
@@ -330,11 +357,13 @@
     $('loc-apply').addEventListener('click', applyLocation);
     $('loc-preset').addEventListener('change', e => {
       const p = NS.PRESETS[parseInt(e.target.value, 10)];
-      if (p) { $('loc-lat').value = p.lat; $('loc-lon').value = p.lon; $('loc-label').value = p.name; }
+      if (p) { $('loc-lat').value = p.lat; $('loc-lon').value = p.lon; $('loc-label').value = p.name; previewFromInputs(); }
     });
+    ['loc-lat', 'loc-lon'].forEach(id => $(id).addEventListener('input', previewFromInputs));
     $('loc-geo').addEventListener('click', () => locateGps(o => {
       $('loc-lat').value = o.lat.toFixed(2); $('loc-lon').value = o.lon.toFixed(2);
       $('loc-preset').value = ''; $('loc-label').value = o.name;
+      previewFromInputs();
       UI.toast(NS.t('gotCoords'));
     }));
     // окно первого запуска

@@ -284,6 +284,7 @@ table.planets td.alt .dn { color: var(--muted); }
 .lbl-star { font-size: 10px; letter-spacing: .1em; color: rgba(220,235,255,.65); transform: translate(8px, -10px); }
 .lbl-tiny { font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--cyan-dim); }
 .lbl-sun { font-size: 12px; letter-spacing: .1em; color: var(--gold); transform: translate(16px, -50%); }
+.lbl-city { font-size: 9px; letter-spacing: .08em; color: rgba(245,197,107,.8); transform: translate(6px, -10px); text-shadow: 0 0 4px #000, 0 0 2px #000; }
 .lbl-here { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); transform: translate(10px, -14px); }
 
 #toast {
