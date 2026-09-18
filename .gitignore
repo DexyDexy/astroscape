@@ -1,0 +1,5 @@
+# локальные настройки Claude Code (права доступа)
+.claude/settings.local.json
+# системный мусор
+Thumbs.db
+.DS_Store
