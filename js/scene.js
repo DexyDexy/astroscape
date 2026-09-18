@@ -320,11 +320,11 @@
 
     // маркер наблюдателя
     const locGroup = new THREE.Group(); earthGroup.add(locGroup);
-    const locDot = new THREE.Mesh(new THREE.SphereGeometry(0.018, 16, 12), new THREE.MeshBasicMaterial({ color: 0xf5c56b }));
+    const locDot = new THREE.Mesh(new THREE.SphereGeometry(0.0045, 12, 8), new THREE.MeshBasicMaterial({ color: 0xf5c56b }));
     locGroup.add(locDot);
-    locGroup.add(sprite(TEX_GLOW, '#f5c56b', 0.22, 0.9));
+    locGroup.add(sprite(TEX_GLOW, '#f5c56b', 0.055, 0.9));
     const locStem = segments([0, 0, 0, 0, 0.45, 0], '#f5c56b', 0.7); locGroup.add(locStem);
-    const locRing = new THREE.Mesh(new THREE.RingGeometry(0.05, 0.06, 32), new THREE.MeshBasicMaterial({ color: 0xf5c56b, transparent: true, opacity: 0.8, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
+    const locRing = new THREE.Mesh(new THREE.RingGeometry(0.0125, 0.015, 32), new THREE.MeshBasicMaterial({ color: 0xf5c56b, transparent: true, opacity: 0.8, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
     locRing.rotation.x = -Math.PI / 2; locGroup.add(locRing);
     const locLabel = makeLabel('', 'lbl-here'); locLabel.position.set(0, 0.45, 0); locGroup.add(locLabel);
     // подсолнечная точка
