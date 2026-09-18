@@ -19,12 +19,15 @@
   let states = null, aspects = null, riseSets = {}, heavy = null;
   let lastLightMs = -Infinity, lastHeavyMs = -Infinity, heavyTimer = null, heavyPending = false;
   let dragging = false;
+  let firstRun = false, guess = null;   // первый запуск: предположение о месте по часовому поясу
 
   // ---------- сохранение ----------
   function load() {
+    let hasObserver = false;
     try {
       const s = JSON.parse(localStorage.getItem('astroscape.state') || '{}');
       if (s.observer && isFinite(s.observer.lat)) {
+        hasObserver = true;
         state.observer = s.observer;
         // город из списка — берём имя на текущем языке (старые записи без preset сопоставляем по координатам)
         let idx = s.observer.preset;
@@ -33,6 +36,7 @@
       }
       if (s.options) Object.assign(optionsSaved, s.options);
     } catch (e) {}
+    return hasObserver;
   }
   const optionsSaved = { aspects: true, bloom: true, starLabels: true };
   function save() {
@@ -40,11 +44,63 @@
   }
 
   // ---------- расчёты ----------
-  function setObserver(o) {
+  function setObserver(o, persist) {
     state.observer = o;
     obsObj = Astro.observer(o.lat, o.lon);
     lastLightMs = -Infinity; lastHeavyMs = -Infinity;
-    save();
+    if (persist !== false) save();
+  }
+
+  // ---------- место при первом запуске ----------
+  function defaultObserver() {
+    const i = NS.PRESETS.findIndex(p => p.en === 'Greenwich');
+    const p = NS.PRESETS[i];
+    return { name: p.name, lat: p.lat, lon: p.lon, preset: i, source: 'default' };
+  }
+  // Часовой пояс устройства известен без разрешений: по нему подбираем ближайший крупный город
+  function guessFromTimeZone() {
+    let tz = null;
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) {}
+    if (!tz) return null;
+    let hint = NS.TZ_HINTS[tz];
+    if (!hint) {
+      const city = tz.split('/').pop().replace(/_/g, ' ').toLowerCase();
+      const idx = NS.PRESETS.findIndex(p => p.en.toLowerCase() === city);
+      if (idx >= 0) hint = NS.PRESETS[idx].en;
+    }
+    if (!hint) return { tz, observer: null };
+    if (typeof hint === 'string') {
+      const idx = NS.PRESETS.findIndex(p => p.en === hint);
+      if (idx < 0) return { tz, observer: null };
+      const p = NS.PRESETS[idx];
+      return { tz, observer: { name: p.name, lat: p.lat, lon: p.lon, preset: idx, source: 'tz' } };
+    }
+    return { tz, observer: { name: (NS.L.code === 'ru' && hint[3]) || hint[2], lat: hint[0], lon: hint[1], source: 'tz' } };
+  }
+  // GPS только по явному действию; координаты округляются до 0.01° (около километра)
+  function locateGps(ok, fail) {
+    if (!navigator.geolocation) { UI.toast(NS.t('noGeo')); if (fail) fail(); return; }
+    UI.toast(NS.t('locating'));
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lat = Math.round(pos.coords.latitude * 100) / 100, lon = Math.round(pos.coords.longitude * 100) / 100;
+      let best = -1, bd = 1e9;
+      NS.PRESETS.forEach((p, i) => { const d = Math.hypot(p.lat - lat, (p.lon - lon) * Math.cos(lat * Math.PI / 180)); if (d < bd) { bd = d; best = i; } });
+      const near = bd < 0.7 ? NS.PRESETS[best] : null;
+      ok({ name: near ? near.name : NS.t('namePh'), lat, lon, preset: near ? best : undefined, source: 'gps' });
+    }, () => { UI.toast(NS.t('geoFail')); if (fail) fail(); }, { timeout: 12000, maximumAge: 600000 });
+  }
+  function showWelcome() {
+    const m = $('modal-welcome'); if (!m) return;
+    const g = guess && guess.observer;
+    $('welcome-guess').innerHTML = g ? NS.t('guessLine', { tz: guess.tz, city: g.name }) : NS.t('guessNone', { tz: guess ? guess.tz : '—' });
+    $('welcome-use').textContent = NS.t('useGuess', { city: g ? g.name : state.observer.name });
+    $('welcome-gps').textContent = NS.t('useGps');
+    m.hidden = false;
+  }
+  function closeWelcome(persist) {
+    const m = $('modal-welcome'); if (!m || m.hidden) return;
+    m.hidden = true;
+    if (persist) save();
   }
 
   function lightUpdate(force) {
@@ -184,10 +240,13 @@
   // ---------- запуск ----------
   NS.boot = function (libs) {
     NS.I18N.init();
-    const p0 = NS.PRESETS[0];
-    state.observer = { name: p0.name, lat: p0.lat, lon: p0.lon, preset: 0 };
-    load();
-    setObserver(state.observer);
+    const saved = load();
+    if (!saved) {
+      firstRun = true;
+      guess = guessFromTimeZone();
+      state.observer = (guess && guess.observer) || defaultObserver();
+    }
+    setObserver(state.observer, saved);     // предварительное место не сохраняем, пока пользователь не выбрал
     UI.fillPresets();
     UI.initPanels();
     UI.buildRows(select);
@@ -217,6 +276,7 @@
     scene.start(tick);
     setTimeout(() => $('loader').classList.add('hide'), 600);
     bind();
+    if (firstRun) setTimeout(showWelcome, 1300);
   };
 
   function select(id) {
@@ -272,15 +332,17 @@
       const p = NS.PRESETS[parseInt(e.target.value, 10)];
       if (p) { $('loc-lat').value = p.lat; $('loc-lon').value = p.lon; $('loc-label').value = p.name; }
     });
-    $('loc-geo').addEventListener('click', () => {
-      if (!navigator.geolocation) { UI.toast(NS.t('noGeo')); return; }
-      UI.toast(NS.t('locating'));
-      navigator.geolocation.getCurrentPosition(pos => {
-        $('loc-lat').value = pos.coords.latitude.toFixed(4); $('loc-lon').value = pos.coords.longitude.toFixed(4);
-        if (!$('loc-label').value) $('loc-label').value = NS.t('namePh');
-        UI.toast(NS.t('gotCoords'));
-      }, () => UI.toast(NS.t('geoFail')), { timeout: 10000 });
-    });
+    $('loc-geo').addEventListener('click', () => locateGps(o => {
+      $('loc-lat').value = o.lat.toFixed(2); $('loc-lon').value = o.lon.toFixed(2);
+      $('loc-preset').value = ''; $('loc-label').value = o.name;
+      UI.toast(NS.t('gotCoords'));
+    }));
+    // окно первого запуска
+    $('welcome-use').addEventListener('click', () => { closeWelcome(true); UI.toast(NS.t('placeSet', { n: state.observer.name })); });
+    $('welcome-gps').addEventListener('click', () => locateGps(o => { setObserver(o); closeWelcome(false); UI.toast(NS.t('gpsDone') + ' · ' + o.name); }));
+    $('welcome-manual').addEventListener('click', () => { closeWelcome(false); openLocation(); });
+    $('welcome-close').addEventListener('click', () => closeWelcome(!!(guess && guess.observer)));
+    $('modal-welcome').addEventListener('click', e => { if (e.target === $('modal-welcome')) closeWelcome(!!(guess && guess.observer)); });
     $('modal-location').addEventListener('click', e => { if (e.target === $('modal-location')) closeLocation(); });
 
     $('btn-help').addEventListener('click', () => { $('modal-help').hidden = false; });
@@ -310,7 +372,7 @@
       else if (k === 's' || k === 'ы') toggleOption('starLabels');
       else if (k === 'l' || k === 'д') openLocation();
       else if (e.key === '?' || e.key === '/') $('modal-help').hidden = !$('modal-help').hidden;
-      else if (e.key === 'Escape') { closeLocation(); $('modal-help').hidden = true; if (state.selected) select(state.selected); }
+      else if (e.key === 'Escape') { closeLocation(); closeWelcome(!!(guess && guess.observer)); $('modal-help').hidden = true; if (state.selected) select(state.selected); }
     });
   }
 })(window.AstroScape);

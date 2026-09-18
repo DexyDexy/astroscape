@@ -144,6 +144,43 @@ window.AstroScape = window.AstroScape || {};
     { ru: 'Окленд', en: 'Auckland', lat: -36.8485, lon: 174.7633 },
     { ru: 'Гонолулу', en: 'Honolulu', lat: 21.3069, lon: -157.8583 },
     { ru: 'Северный полюс', en: 'North Pole', de: 'Nordpol', es: 'Polo Norte', fr: 'Pôle Nord', it: 'Polo Nord', pt: 'Polo Norte', lat: 89.99, lon: 0 },
+    { ru: 'Гринвич', en: 'Greenwich', lat: 51.4779, lon: -0.0015 },
     { ru: 'Экватор (Кито)', en: 'Equator (Quito)', de: 'Äquator (Quito)', es: 'Ecuador (Quito)', fr: 'Équateur (Quito)', it: 'Equatore (Quito)', pt: 'Equador (Quito)', lat: -0.1807, lon: -78.4678 },
   ];
+
+  // Часовой пояс устройства → ближайший крупный город (без сети и разрешений).
+  // Значение: имя города из PRESETS (поле en) либо [lat, lon, 'Name', 'Имя по-русски'].
+  NS.TZ_HINTS = {
+    'Europe/Moscow': 'Moscow', 'Europe/Kiev': 'Kyiv', 'Europe/Kyiv': 'Kyiv', 'Europe/Minsk': 'Minsk', 'Europe/Istanbul': 'Istanbul',
+    'Europe/London': 'London', 'Europe/Paris': 'Paris', 'Europe/Berlin': 'Berlin', 'Europe/Rome': 'Rome', 'Europe/Madrid': 'Madrid',
+    'Europe/Lisbon': 'Lisbon', 'Europe/Prague': 'Prague', 'Europe/Warsaw': 'Warsaw', 'Europe/Riga': 'Riga', 'Europe/Helsinki': 'Helsinki',
+    'Atlantic/Reykjavik': 'Reykjavík', 'Europe/Samara': [53.20, 50.15, 'Samara', 'Самара'], 'Europe/Volgograd': [48.71, 44.51, 'Volgograd', 'Волгоград'],
+    'Europe/Kaliningrad': [54.71, 20.45, 'Kaliningrad', 'Калининград'], 'Europe/Vienna': [48.21, 16.37, 'Vienna', 'Вена'], 'Europe/Zurich': [47.38, 8.54, 'Zurich', 'Цюрих'],
+    'Europe/Amsterdam': [52.37, 4.90, 'Amsterdam', 'Амстердам'], 'Europe/Brussels': [50.85, 4.35, 'Brussels', 'Брюссель'], 'Europe/Stockholm': [59.33, 18.07, 'Stockholm', 'Стокгольм'],
+    'Europe/Oslo': [59.91, 10.75, 'Oslo', 'Осло'], 'Europe/Copenhagen': [55.68, 12.57, 'Copenhagen', 'Копенгаген'], 'Europe/Dublin': [53.35, -6.26, 'Dublin', 'Дублин'],
+    'Europe/Athens': [37.98, 23.73, 'Athens', 'Афины'], 'Europe/Budapest': [47.50, 19.04, 'Budapest', 'Будапешт'], 'Europe/Bucharest': [44.43, 26.10, 'Bucharest', 'Бухарест'],
+    'Europe/Sofia': [42.70, 23.32, 'Sofia', 'София'], 'Europe/Belgrade': [44.79, 20.45, 'Belgrade', 'Белград'], 'Europe/Zagreb': [45.81, 15.98, 'Zagreb', 'Загреб'],
+    'Europe/Ljubljana': [46.06, 14.51, 'Ljubljana', 'Любляна'], 'Europe/Bratislava': [48.15, 17.11, 'Bratislava', 'Братислава'], 'Europe/Vilnius': [54.69, 25.28, 'Vilnius', 'Вильнюс'],
+    'Europe/Tallinn': [59.44, 24.75, 'Tallinn', 'Таллин'], 'Europe/Chisinau': [47.01, 28.86, 'Chișinău', 'Кишинёв'], 'Europe/Luxembourg': [49.61, 6.13, 'Luxembourg', 'Люксембург'],
+    'Asia/Tbilisi': 'Tbilisi', 'Asia/Yerevan': 'Yerevan', 'Asia/Baku': [40.41, 49.87, 'Baku', 'Баку'], 'Asia/Tashkent': 'Tashkent', 'Asia/Almaty': 'Almaty',
+    'Asia/Yekaterinburg': 'Yekaterinburg', 'Asia/Novosibirsk': 'Novosibirsk', 'Asia/Omsk': [54.99, 73.37, 'Omsk', 'Омск'], 'Asia/Krasnoyarsk': [56.01, 92.87, 'Krasnoyarsk', 'Красноярск'],
+    'Asia/Irkutsk': [52.29, 104.30, 'Irkutsk', 'Иркутск'], 'Asia/Yakutsk': [62.03, 129.73, 'Yakutsk', 'Якутск'], 'Asia/Vladivostok': 'Vladivostok', 'Asia/Magadan': [59.56, 150.80, 'Magadan', 'Магадан'],
+    'Asia/Kamchatka': [53.02, 158.65, 'Petropavlovsk-Kamchatsky', 'Петропавловск-Камчатский'], 'Asia/Tokyo': 'Tokyo', 'Asia/Seoul': 'Seoul', 'Asia/Shanghai': 'Shanghai',
+    'Asia/Hong_Kong': 'Hong Kong', 'Asia/Singapore': 'Singapore', 'Asia/Bangkok': 'Bangkok', 'Asia/Jakarta': [-6.21, 106.85, 'Jakarta', 'Джакарта'],
+    'Asia/Makassar': 'Bali (Denpasar)', 'Asia/Manila': [14.60, 120.98, 'Manila', 'Манила'], 'Asia/Kolkata': [22.57, 88.36, 'Kolkata', 'Калькутта'], 'Asia/Calcutta': [22.57, 88.36, 'Kolkata', 'Калькутта'],
+    'Asia/Dubai': 'Dubai', 'Asia/Jerusalem': 'Tel Aviv', 'Asia/Tel_Aviv': 'Tel Aviv', 'Asia/Riyadh': [24.71, 46.68, 'Riyadh', 'Эр-Рияд'], 'Asia/Tehran': [35.69, 51.39, 'Tehran', 'Тегеран'],
+    'Asia/Karachi': [24.86, 67.01, 'Karachi', 'Карачи'], 'Asia/Dhaka': [23.81, 90.41, 'Dhaka', 'Дакка'], 'Asia/Kathmandu': [27.72, 85.32, 'Kathmandu', 'Катманду'], 'Asia/Taipei': [25.03, 121.57, 'Taipei', 'Тайбэй'],
+    'Asia/Ho_Chi_Minh': [10.82, 106.63, 'Ho Chi Minh City', 'Хошимин'], 'Asia/Kuala_Lumpur': [3.14, 101.69, 'Kuala Lumpur', 'Куала-Лумпур'], 'Asia/Beirut': [33.89, 35.50, 'Beirut', 'Бейрут'],
+    'Australia/Sydney': 'Sydney', 'Australia/Melbourne': [-37.81, 144.96, 'Melbourne', 'Мельбурн'], 'Australia/Brisbane': [-27.47, 153.03, 'Brisbane', 'Брисбен'],
+    'Australia/Perth': [-31.95, 115.86, 'Perth', 'Перт'], 'Australia/Adelaide': [-34.93, 138.60, 'Adelaide', 'Аделаида'], 'Pacific/Auckland': 'Auckland', 'Pacific/Honolulu': 'Honolulu',
+    'America/New_York': 'New York', 'America/Chicago': [41.88, -87.63, 'Chicago', 'Чикаго'], 'America/Denver': [39.74, -104.99, 'Denver', 'Денвер'], 'America/Phoenix': [33.45, -112.07, 'Phoenix', 'Финикс'],
+    'America/Los_Angeles': 'Los Angeles', 'America/Anchorage': [61.22, -149.90, 'Anchorage', 'Анкоридж'], 'America/Toronto': 'Toronto', 'America/Vancouver': [49.28, -123.12, 'Vancouver', 'Ванкувер'],
+    'America/Mexico_City': 'Mexico City', 'America/Bogota': [4.71, -74.07, 'Bogotá', 'Богота'], 'America/Lima': [-12.05, -77.04, 'Lima', 'Лима'], 'America/Santiago': [-33.45, -70.67, 'Santiago', 'Сантьяго'],
+    'America/Argentina/Buenos_Aires': 'Buenos Aires', 'America/Buenos_Aires': 'Buenos Aires', 'America/Sao_Paulo': [-23.55, -46.63, 'São Paulo', 'Сан-Паулу'],
+    'America/Caracas': [10.48, -66.90, 'Caracas', 'Каракас'], 'America/Havana': [23.11, -82.37, 'Havana', 'Гавана'], 'America/Panama': [8.98, -79.52, 'Panama City', 'Панама'],
+    'America/Guayaquil': 'Equator (Quito)', 'America/Montevideo': [-34.90, -56.16, 'Montevideo', 'Монтевидео'], 'America/Halifax': [44.65, -63.57, 'Halifax', 'Галифакс'],
+    'Africa/Cairo': 'Cairo', 'Africa/Johannesburg': [-26.20, 28.05, 'Johannesburg', 'Йоханнесбург'], 'Africa/Nairobi': 'Nairobi', 'Africa/Lagos': [6.52, 3.38, 'Lagos', 'Лагос'],
+    'Africa/Casablanca': [33.57, -7.59, 'Casablanca', 'Касабланка'], 'Africa/Algiers': [36.75, 3.06, 'Algiers', 'Алжир'], 'Africa/Tunis': [36.81, 10.17, 'Tunis', 'Тунис'],
+    'Africa/Accra': [5.60, -0.19, 'Accra', 'Аккра'], 'Africa/Addis_Ababa': [9.03, 38.74, 'Addis Ababa', 'Аддис-Абеба'],
+  };
 })(window.AstroScape);

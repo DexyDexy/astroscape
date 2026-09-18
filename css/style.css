@@ -241,6 +241,11 @@ table.planets td.alt .dn { color: var(--muted); }
 .modal-box .body::-webkit-scrollbar { width: 6px; }
 .modal-box .body::-webkit-scrollbar-thumb { background: rgba(127,215,255,.3); }
 .modal-box.wide { width: 560px; }
+.modal-box.welcome { width: 440px; }
+.welcome .lead { margin: 0 0 10px; font-size: 13px; line-height: 1.5; }
+.welcome .guess { margin: 0 0 14px; font-size: 13px; line-height: 1.5; color: var(--cyan); }
+.welcome .guess b { color: var(--gold); font-weight: 600; }
+.welcome .choices { display: grid; gap: 8px; }
 .modal-box header { cursor: default; }
 .modal-box .close { margin-left: auto; background: none; border: 0; color: var(--muted); font-size: 14px; cursor: pointer; }
 .modal-box .close:hover { color: #fff; }

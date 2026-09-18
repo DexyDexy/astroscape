@@ -195,6 +195,23 @@
     </div>
   </div>
 
+  <!-- ПЕРВЫЙ ЗАПУСК: МЕСТО НАБЛЮДЕНИЯ -->
+  <div class="modal" id="modal-welcome" hidden>
+    <div class="modal-box panel welcome">
+      <header><h2 data-i18n="welcomeTitle"></h2><button class="close" id="welcome-close">✕</button></header>
+      <div class="body">
+        <p class="lead" data-i18n="welcomeText"></p>
+        <p class="guess" id="welcome-guess"></p>
+        <div class="choices">
+          <button class="btn" id="welcome-use"></button>
+          <button class="btn ghost" id="welcome-gps"></button>
+          <button class="btn ghost" id="welcome-manual" data-i18n="pickManual"></button>
+        </div>
+        <p class="note" data-i18n="privacyNote"></p>
+      </div>
+    </div>
+  </div>
+
   <!-- СПРАВКА -->
   <div class="modal" id="modal-help" hidden>
     <div class="modal-box panel wide">
