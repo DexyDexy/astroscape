@@ -169,17 +169,17 @@
       starGroup.add(new THREE.Points(g, m));
 
       // реальные яркие звёзды
-      const stars = NS.STARS.slice().sort((a, b) => a[3] - b[3]);
+      const stars = NS.STARS.slice().sort((a, b) => a[4] - b[4]);
       const bright = [], brightCol = [];
       S.starLabels = [];
       stars.forEach((st, i) => {
-        const ra = st[1] * 15 * DEG, dec = st[2] * DEG, mag = st[3];
+        const ra = st[2] * 15 * DEG, dec = st[3] * DEG, mag = st[4];
         const x = Math.cos(dec) * Math.cos(ra), y = Math.cos(dec) * Math.sin(ra), z = Math.sin(dec);
         const p = [x * 300, z * 300, -y * 300];
         const w = Math.min(1, Math.max(0.3, 1.15 - mag * 0.22));
         bright.push(p[0], p[1], p[2]); brightCol.push(w, w, w);
         if (i < NS.STAR_LABEL_LIMIT) {
-          const l = makeLabel(st[0], 'lbl-star');
+          const l = makeLabel(NS.starName(st), 'lbl-star');
           l.position.set(p[0], p[1], p[2]);
           starGroup.add(l); S.starLabels.push(l);
         }
@@ -199,8 +199,8 @@
         eqTicks.push(r1 * Math.cos(a), 0, -r1 * Math.sin(a), r2 * Math.cos(a), 0, -r2 * Math.sin(a));
       }
       scene.add(segments(eqTicks, '#7fd7ff', 0.25));
-      const eqLbl = makeLabel('небесный экватор', 'lbl-tiny'); eqLbl.position.set(0, 0.08, NS.EQUATOR_R + 0.05); scene.add(eqLbl);
-      const ariesLbl = makeLabel('♈ 0° · точка весеннего равноденствия', 'lbl-tiny'); ariesLbl.position.set(NS.EQUATOR_R + 0.6, -0.12, 0); scene.add(ariesLbl);
+      const eqLbl = makeLabel(NS.t('equator'), 'lbl-tiny'); eqLbl.position.set(0, 0.08, NS.EQUATOR_R + 0.05); scene.add(eqLbl);
+      const ariesLbl = makeLabel(NS.t('aries'), 'lbl-tiny'); ariesLbl.position.set(NS.EQUATOR_R + 0.6, -0.12, 0); scene.add(ariesLbl);
     })();
 
     // ------------------------------------------------------------ Земля
@@ -278,7 +278,7 @@
     // подсолнечная точка
     const subsolar = new THREE.Group(); scene.add(subsolar);
     subsolar.add(sprite(TEX_GLOW, '#ffd36b', 0.18, 0.9));
-    const ssl = makeLabel('☉ полдень', 'lbl-tiny'); ssl.position.set(0, 0.06, 0); subsolar.add(ssl);
+    const ssl = makeLabel(NS.t('noonMark'), 'lbl-tiny'); ssl.position.set(0, 0.06, 0); subsolar.add(ssl);
 
     // ------------------------------------------------------------ эклиптика и зодиак
     const eclGroup = new THREE.Group(); scene.add(eclGroup);      // наклон = наклон эклиптики
@@ -300,7 +300,7 @@
         const sector = new THREE.Mesh(new THREE.RingGeometry(Ri, R, 24, 1, i * 30 * DEG, 30 * DEG),
           new THREE.MeshBasicMaterial({ color: C(col), transparent: true, opacity: 0.045, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
         sector.rotation.x = -Math.PI / 2; zodiacGroup.add(sector);
-        const l = makeLabel(z.glyph + '<small>' + z.ru + '</small>', 'lbl-zodiac');
+        const l = makeLabel(z.glyph + '<small>' + z.name + '</small>', 'lbl-zodiac');
         l.el.style.color = col;
         const a = (i * 30 + 15) * DEG, r = R + 0.42;
         l.position.set(r * Math.cos(a), 0, -r * Math.sin(a));
@@ -371,9 +371,9 @@
         const rr = R * Math.cos(h * DEG), yy = R * Math.sin(h * DEG);
         const cc = circle(rr, '#f5c56b', 0.07, 'xz', 180); cc.position.y = yy; horGroup.add(cc);
       });
-      const zen = makeLabel('зенит', 'lbl-tiny'); zen.position.set(0, R + 0.1, 0); horGroup.add(zen);
+      const zen = makeLabel(NS.t('zenith'), 'lbl-tiny'); zen.position.set(0, R + 0.1, 0); horGroup.add(zen);
       horGroup.add(segments([0, R - 0.12, 0, 0, R + 0.02, 0], '#f5c56b', 0.6));
-      [['С', 0], ['В', 90], ['Ю', 180], ['З', 270]].forEach(([t, a]) => {
+      [[NS.L.cardinal.N, 0], [NS.L.cardinal.E, 90], [NS.L.cardinal.S, 180], [NS.L.cardinal.W, 270]].forEach(([t, a]) => {
         const l = makeLabel(t, 'lbl-card'); const r = a * DEG;
         l.position.set((R + 0.45) * Math.cos(r), 0, (R + 0.45) * Math.sin(r)); horGroup.add(l);
       });
@@ -386,12 +386,12 @@
       const sun = new THREE.Group();
       sun.add(new THREE.Mesh(new THREE.SphereGeometry(0.16, 32, 24), new THREE.MeshBasicMaterial({ color: 0xffd36b })));
       sun.add(sprite(TEX_GLOW, '#ffd36b', 1.6, 1));
-      const sl = makeLabel('☉ Солнце', 'lbl-sun'); sun.add(sl);
+      const sl = makeLabel(NS.t('sunLabel'), 'lbl-sun'); sun.add(sl);
       helioGroup.add(sun);
       const bodies = NS.BODIES.filter(b => b.helio).map(b => b.id);
       bodies.splice(2, 0, 'Earth');
       bodies.forEach(id => {
-        const b = id === 'Earth' ? { id: 'Earth', ru: 'Земля', glyph: '⊕', color: '#6fb7ff', size: 0.07 } : NS.BODY[id];
+        const b = id === 'Earth' ? { id: 'Earth', name: NS.L.planets.Earth, glyph: '⊕', color: '#6fb7ff', size: 0.07 } : NS.BODY[id];
         const g = new THREE.Group();
         g.add(new THREE.Mesh(new THREE.SphereGeometry(b.size * 0.9, 24, 16), new THREE.MeshBasicMaterial({ color: C(b.color) })));
         const halo = sprite(TEX_GLOW, b.color, b.size * 5, 0.7); g.add(halo);
@@ -458,7 +458,7 @@
         G.retro.visible = !!s.retro;
         G.halo.material.opacity = (s.above ? 1 : 0.35) * (b.id === 'Sun' ? 0.95 : 0.7);
         const z = NS.ZODIAC[s.signIdx];
-        const txt = '<span class="g">' + b.glyph + '</span><span class="nm">' + b.ru + '</span><span class="ps">' + s.deg + '°' + String(s.min).padStart(2, '0') + '′ ' + z.glyph + '</span>' + (s.retro ? '<span class="rx">℞</span>' : '');
+        const txt = '<span class="g">' + b.glyph + '</span><span class="nm">' + b.name + '</span><span class="ps">' + s.deg + '°' + String(s.min).padStart(2, '0') + '′ ' + z.glyph + '</span>' + (s.retro ? '<span class="rx">℞</span>' : '');
         if (txt !== G.text) { G.text = txt; G.label.el.innerHTML = txt; }
         G.label.el.classList.toggle('below', !s.above);
         G.label.el.classList.toggle('sel', S.selected === b.id);
@@ -499,11 +499,11 @@
         const t = (-bq + Math.sqrt(Math.max(0, bq * bq - 4 * cq))) / 2;
         setLine(H.ray, [earth, [earth[0] + d[0] * t, earth[1] + d[1] * t, earth[2] + d[2] * t]]);
         let txt;
-        if (id === 'Earth') txt = '<span class="g">⊕</span><span class="nm">Земля</span>';
+        if (id === 'Earth') txt = '<span class="g">⊕</span><span class="nm">' + NS.L.planets.Earth + '</span>';
         else {
           const s = f.states[id];
           const z = NS.ZODIAC[s.signIdx];
-          txt = '<span class="g">' + H.def.glyph + '</span><span class="nm">' + H.def.ru + '</span><span class="ps">' + s.distAU.toFixed(2) + ' а.е. · ' + z.glyph + '</span>' + (s.retro ? '<span class="rx">℞</span>' : '');
+          txt = '<span class="g">' + H.def.glyph + '</span><span class="nm">' + H.def.name + '</span><span class="ps">' + s.distAU.toFixed(2) + ' ' + NS.L.units.au + ' · ' + z.glyph + '</span>' + (s.retro ? '<span class="rx">℞</span>' : '');
         }
         if (txt !== H.text) { H.text = txt; H.label.el.innerHTML = txt; }
         H.label.el.classList.toggle('sel', S.selected === id);

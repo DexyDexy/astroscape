@@ -140,10 +140,10 @@
     const ev = [];
     [y - 1, y, y + 1].forEach(yy => {
       const s = A.Seasons(yy);
-      ev.push({ name: 'Весеннее равноденствие', date: s.mar_equinox.date, k: 'eq' });
-      ev.push({ name: 'Летнее солнцестояние', date: s.jun_solstice.date, k: 'sol' });
-      ev.push({ name: 'Осеннее равноденствие', date: s.sep_equinox.date, k: 'eq' });
-      ev.push({ name: 'Зимнее солнцестояние', date: s.dec_solstice.date, k: 'sol' });
+      ev.push({ key: 'mar', date: s.mar_equinox.date, k: 'eq' });
+      ev.push({ key: 'jun', date: s.jun_solstice.date, k: 'sol' });
+      ev.push({ key: 'sep', date: s.sep_equinox.date, k: 'eq' });
+      ev.push({ key: 'dec', date: s.dec_solstice.date, k: 'sol' });
     });
     ev.sort((a, b) => a.date - b.date);
     const seasons = ev.filter(e => e.date >= date).slice(0, 4);

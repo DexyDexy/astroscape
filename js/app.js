@@ -11,7 +11,7 @@
     speed: 1,
     anchor: new Date(),
     span: 30 * 86400,
-    observer: { name: 'Москва', lat: 55.7558, lon: 37.6173 },
+    observer: null,   // задаётся в boot после инициализации языка
     selected: null,
     mode: 'geo',
   };
@@ -24,7 +24,13 @@
   function load() {
     try {
       const s = JSON.parse(localStorage.getItem('astroscape.state') || '{}');
-      if (s.observer && isFinite(s.observer.lat)) state.observer = s.observer;
+      if (s.observer && isFinite(s.observer.lat)) {
+        state.observer = s.observer;
+        // город из списка — берём имя на текущем языке (старые записи без preset сопоставляем по координатам)
+        let idx = s.observer.preset;
+        if (idx == null) idx = NS.PRESETS.findIndex(p => p.lat === s.observer.lat && p.lon === s.observer.lon);
+        if (idx != null && idx >= 0 && NS.PRESETS[idx]) { state.observer.name = NS.PRESETS[idx].name; state.observer.preset = idx; }
+      }
       if (s.options) Object.assign(optionsSaved, s.options);
     } catch (e) {}
   }
@@ -102,7 +108,7 @@
     state.live = true; state.playing = true; state.speed = 1;
     $('speed').value = '1';
     setDate(new Date(), { keepLive: true, anchor: true });
-    UI.toast('Текущий момент · реальное время');
+    UI.toast(NS.t('nowToast'));
   }
   function updateTimeUI() {
     $('btn-play').textContent = state.playing ? '❚❚' : '▶';
@@ -167,15 +173,19 @@
   function closeLocation() { $('modal-location').hidden = true; scene.setPickGlobe(false); }
   function applyLocation() {
     const lat = parseFloat($('loc-lat').value), lon = parseFloat($('loc-lon').value);
-    if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) { UI.toast('Проверьте координаты'); return; }
-    const name = $('loc-label').value.trim() || (lat.toFixed(2) + ', ' + lon.toFixed(2));
-    setObserver({ name, lat, lon });
+    if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) { UI.toast(NS.t('checkCoords')); return; }
+    const presetIdx = NS.PRESETS.findIndex(p => p.lat === lat && p.lon === lon);
+    const name = presetIdx >= 0 ? NS.PRESETS[presetIdx].name : ($('loc-label').value.trim() || (lat.toFixed(2) + ', ' + lon.toFixed(2)));
+    setObserver({ name, lat, lon, preset: presetIdx >= 0 ? presetIdx : undefined });
     closeLocation();
-    UI.toast('Место: ' + name);
+    UI.toast(NS.t('placeSet', { n: name }));
   }
 
   // ---------- запуск ----------
   NS.boot = function (libs) {
+    NS.I18N.init();
+    const p0 = NS.PRESETS[0];
+    state.observer = { name: p0.name, lat: p0.lat, lon: p0.lon, preset: 0 };
     load();
     setObserver(state.observer);
     UI.fillPresets();
@@ -224,15 +234,15 @@
     $('btn-stars').classList.toggle('on', scene.options.starLabels);
     $('btn-bloom').classList.toggle('on', scene.options.bloom);
     $('btn-view').classList.toggle('on', state.mode === 'helio');
-    $('btn-view').textContent = state.mode === 'helio' ? '⊕ Гео' : '☉ Гелио';
-    $('planets-hint').textContent = state.mode === 'helio' ? 'гелиоцентрический вид' : 'геоцентрически · тропический зодиак';
+    $('btn-view').textContent = state.mode === 'helio' ? NS.t('btnGeo') : NS.t('btnHelio');
+    $('planets-hint').textContent = state.mode === 'helio' ? NS.t('hintHelio') : NS.t('hintGeo');
   }
   function toggleOption(k) { scene.setOption(k, !scene.options[k]); save(); syncToolbar(); }
   function toggleMode() {
     state.mode = state.mode === 'geo' ? 'helio' : 'geo';
     scene.setMode(state.mode);
     syncToolbar();
-    UI.toast(state.mode === 'helio' ? 'Гелиоцентрический вид: лучи с Земли показывают, в каком знаке планета видна с Земли' : 'Геоцентрический вид');
+    UI.toast(state.mode === 'helio' ? NS.t('helioToast') : NS.t('geoToast'));
   }
 
   function bind() {
@@ -263,17 +273,18 @@
       if (p) { $('loc-lat').value = p.lat; $('loc-lon').value = p.lon; $('loc-label').value = p.name; }
     });
     $('loc-geo').addEventListener('click', () => {
-      if (!navigator.geolocation) { UI.toast('Геолокация недоступна'); return; }
-      UI.toast('Определяю положение…');
+      if (!navigator.geolocation) { UI.toast(NS.t('noGeo')); return; }
+      UI.toast(NS.t('locating'));
       navigator.geolocation.getCurrentPosition(pos => {
         $('loc-lat').value = pos.coords.latitude.toFixed(4); $('loc-lon').value = pos.coords.longitude.toFixed(4);
-        if (!$('loc-label').value) $('loc-label').value = 'Моё место';
-        UI.toast('Координаты получены — нажмите «Применить»');
-      }, () => UI.toast('Не удалось определить положение'), { timeout: 10000 });
+        if (!$('loc-label').value) $('loc-label').value = NS.t('namePh');
+        UI.toast(NS.t('gotCoords'));
+      }, () => UI.toast(NS.t('geoFail')), { timeout: 10000 });
     });
     $('modal-location').addEventListener('click', e => { if (e.target === $('modal-location')) closeLocation(); });
 
     $('btn-help').addEventListener('click', () => { $('modal-help').hidden = false; });
+    $('lang').addEventListener('change', e => NS.I18N.setLang(e.target.value));
     $('help-close').addEventListener('click', () => { $('modal-help').hidden = true; });
     $('modal-help').addEventListener('click', e => { if (e.target === $('modal-help')) $('modal-help').hidden = true; });
 

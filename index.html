@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AstroScape — живая карта неба</title>
-<meta name="description" content="Интерактивная 3D‑астролябия: положения планет, фазы Луны, ретроградность, восходы и закаты для любого места и времени.">
+<title>AstroScape</title>
+<meta name="description" content="Interactive 3D astrolabe: planetary positions, Moon phases, retrogrades, sunrise and sunset for any place and time.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
@@ -25,7 +25,7 @@
 
 <div id="loader">
   <div class="loader-ring"></div>
-  <div class="loader-text">ASTROSCAPE<span>расчёт эфемерид…</span></div>
+  <div class="loader-text">ASTROSCAPE<span data-i18n="loader">…</span></div>
 </div>
 
 <div id="hud">
@@ -35,59 +35,59 @@
     <section class="panel brand-panel" id="panel-time">
       <div class="brand">
         <div class="brand-name">ASTRO<b>SCAPE</b></div>
-        <div class="brand-sub">живая карта неба</div>
+        <div class="brand-sub" data-i18n="brandSub"></div>
       </div>
       <div class="clock">
         <div class="clock-time" id="clock-time">--:--:--</div>
         <div class="clock-date" id="clock-date">—</div>
       </div>
       <div class="kv">
-        <div><span>UTC</span><b id="clock-utc">—</b></div>
-        <div><span>Юлианская дата</span><b id="clock-jd">—</b></div>
-        <div><span>Звёздное время</span><b id="clock-lst">—</b></div>
+        <div><span data-i18n="utc">UTC</span><b id="clock-utc">—</b></div>
+        <div><span data-i18n="jd"></span><b id="clock-jd">—</b></div>
+        <div><span data-i18n="lst"></span><b id="clock-lst">—</b></div>
       </div>
-      <button class="loc-btn" id="btn-location" title="Изменить место наблюдения">
+      <button class="loc-btn" id="btn-location" data-i18n-title="locTitle">
         <span class="loc-icon">◎</span>
         <span class="loc-text"><b id="loc-name">—</b><small id="loc-coords">—</small></span>
-        <span class="loc-edit">изменить</span>
+        <span class="loc-edit" data-i18n="locEdit"></span>
       </button>
     </section>
 
     <section class="panel collapsible" id="panel-moon">
-      <header><h2>☽ Луна</h2><span class="hint" id="moon-phase-name">—</span><i class="chev"></i></header>
+      <header><h2 data-i18n="moon"></h2><span class="hint" id="moon-phase-name">—</span><i class="chev"></i></header>
       <div class="body">
         <div class="moon-row">
           <canvas id="moon-canvas" width="128" height="128"></canvas>
           <div class="kv moon-kv">
-            <div><span>Освещённость</span><b id="moon-illum">—</b></div>
-            <div><span>Возраст</span><b id="moon-age">—</b></div>
-            <div><span>Знак</span><b id="moon-sign">—</b></div>
-            <div><span>Расстояние</span><b id="moon-dist">—</b></div>
-            <div><span>Восход / заход</span><b id="moon-riseset">—</b></div>
+            <div><span data-i18n="illum"></span><b id="moon-illum">—</b></div>
+            <div><span data-i18n="age"></span><b id="moon-age">—</b></div>
+            <div><span data-i18n="sign"></span><b id="moon-sign">—</b></div>
+            <div><span data-i18n="distance"></span><b id="moon-dist">—</b></div>
+            <div><span data-i18n="riseSet"></span><b id="moon-riseset">—</b></div>
           </div>
         </div>
         <div class="next-phases">
-          <div class="np np-new"><span class="np-ico">●</span><div><span>Новолуние</span><b id="moon-next-new">—</b><small id="moon-next-new-in"></small></div></div>
-          <div class="np np-full"><span class="np-ico">○</span><div><span>Полнолуние</span><b id="moon-next-full">—</b><small id="moon-next-full-in"></small></div></div>
+          <div class="np np-new"><span class="np-ico">●</span><div><span data-i18n="newMoon"></span><b id="moon-next-new">—</b><small id="moon-next-new-in"></small></div></div>
+          <div class="np np-full"><span class="np-ico">○</span><div><span data-i18n="fullMoon"></span><b id="moon-next-full">—</b><small id="moon-next-full-in"></small></div></div>
         </div>
         <ul class="list" id="moon-quarters"></ul>
         <div class="kv small">
-          <div><span>Перигей / апогей</span><b id="moon-apsis">—</b></div>
+          <div><span data-i18n="apsis"></span><b id="moon-apsis">—</b></div>
         </div>
       </div>
     </section>
 
     <section class="panel collapsible" id="panel-sun">
-      <header><h2>☉ Солнце и день</h2><span class="hint" id="sun-hint">—</span><i class="chev"></i></header>
+      <header><h2 data-i18n="sunPanel"></h2><span class="hint" id="sun-hint">—</span><i class="chev"></i></header>
       <div class="body">
         <div class="kv">
-          <div><span>Восход</span><b id="sun-rise">—</b></div>
-          <div><span>Заход</span><b id="sun-set">—</b></div>
-          <div><span>Долгота дня</span><b id="sun-daylen">—</b></div>
-          <div><span>Полдень (кульминация)</span><b id="sun-noon">—</b></div>
-          <div><span>Гражданские сумерки</span><b id="sun-twilight">—</b></div>
-          <div><span>Высота / азимут</span><b id="sun-altaz">—</b></div>
-          <div><span>Знак</span><b id="sun-sign">—</b></div>
+          <div><span data-i18n="sunrise"></span><b id="sun-rise">—</b></div>
+          <div><span data-i18n="sunset"></span><b id="sun-set">—</b></div>
+          <div><span data-i18n="dayLength"></span><b id="sun-daylen">—</b></div>
+          <div><span data-i18n="noon"></span><b id="sun-noon">—</b></div>
+          <div><span data-i18n="twilight"></span><b id="sun-twilight">—</b></div>
+          <div><span data-i18n="altAz"></span><b id="sun-altaz">—</b></div>
+          <div><span data-i18n="sign"></span><b id="sun-sign">—</b></div>
         </div>
         <ul class="list" id="seasons-list"></ul>
       </div>
@@ -97,20 +97,21 @@
   <!-- ПРАВАЯ КОЛОНКА -->
   <div class="col col-right">
     <div class="toolbar">
-      <button id="btn-view" class="tb" title="Переключить геоцентрический / гелиоцентрический вид (H)">☉ Гелио</button>
-      <button id="btn-top" class="tb" title="Вид сверху, как натальная карта (T)">▣ Сверху</button>
-      <button id="btn-reset" class="tb" title="Сбросить камеру (R)">⟲</button>
-      <button id="btn-aspects" class="tb on" title="Показывать линии аспектов (A)">△ Аспекты</button>
-      <button id="btn-stars" class="tb on" title="Подписи ярких звёзд (S)">✦ Звёзды</button>
-      <button id="btn-bloom" class="tb on" title="Свечение линий (B)">◌ Свечение</button>
-      <button id="btn-help" class="tb" title="Справка (?)">?</button>
+      <button id="btn-view" class="tb" data-i18n="btnHelio" data-i18n-title="btnViewTitle"></button>
+      <button id="btn-top" class="tb" data-i18n="btnTop" data-i18n-title="btnTopTitle"></button>
+      <button id="btn-reset" class="tb" data-i18n-title="btnResetTitle">⟲</button>
+      <button id="btn-aspects" class="tb on" data-i18n="btnAspects" data-i18n-title="btnAspectsTitle"></button>
+      <button id="btn-stars" class="tb on" data-i18n="btnStars" data-i18n-title="btnStarsTitle"></button>
+      <button id="btn-bloom" class="tb on" data-i18n="btnBloom" data-i18n-title="btnBloomTitle"></button>
+      <select id="lang" class="tb"></select>
+      <button id="btn-help" class="tb" data-i18n-title="btnHelpTitle">?</button>
     </div>
 
     <section class="panel collapsible" id="panel-planets">
-      <header><h2>Планеты</h2><span class="hint" id="planets-hint">геоцентрически · тропический зодиак</span><i class="chev"></i></header>
+      <header><h2 data-i18n="planets"></h2><span class="hint" id="planets-hint"></span><i class="chev"></i></header>
       <div class="body">
         <table class="planets" id="planets-table">
-          <thead><tr><th></th><th>Тело</th><th>Положение</th><th title="Высота над горизонтом / азимут">Выс / Аз</th><th>Восх · Зах</th></tr></thead>
+          <thead><tr><th></th><th data-i18n="thBody"></th><th data-i18n="thPos"></th><th data-i18n="thAlt" data-i18n-title="thAltTitle"></th><th data-i18n="thRise"></th></tr></thead>
           <tbody></tbody>
         </table>
         <div class="planet-detail" id="planet-detail"></div>
@@ -118,21 +119,21 @@
     </section>
 
     <section class="panel collapsible" id="panel-retro">
-      <header><h2>℞ Ретроградность</h2><span class="hint" id="retro-hint">—</span><i class="chev"></i></header>
+      <header><h2 data-i18n="retro"></h2><span class="hint" id="retro-hint">—</span><i class="chev"></i></header>
       <div class="body">
         <ul class="list retro-list" id="retro-list"></ul>
       </div>
     </section>
 
     <section class="panel collapsible" id="panel-aspects">
-      <header><h2>Аспекты</h2><span class="hint" id="aspects-hint">—</span><i class="chev"></i></header>
+      <header><h2 data-i18n="aspects"></h2><span class="hint" id="aspects-hint">—</span><i class="chev"></i></header>
       <div class="body">
         <ul class="list aspects-list" id="aspects-list"></ul>
       </div>
     </section>
 
     <section class="panel collapsible collapsed" id="panel-eclipses">
-      <header><h2>Затмения</h2><span class="hint" id="eclipse-hint">—</span><i class="chev"></i></header>
+      <header><h2 data-i18n="eclipses"></h2><span class="hint" id="eclipse-hint">—</span><i class="chev"></i></header>
       <div class="body">
         <ul class="list" id="eclipse-list"></ul>
       </div>
@@ -142,29 +143,29 @@
   <!-- УПРАВЛЕНИЕ ВРЕМЕНЕМ -->
   <div class="timebar panel" id="timebar">
     <div class="tb-row">
-      <button class="tbtn" data-step="-86400" title="−1 день (Shift+←)">◀◀</button>
-      <button class="tbtn" data-step="-3600" title="−1 час (←)">◀</button>
-      <button class="tbtn play" id="btn-play" title="Пуск / пауза (Пробел)">❚❚</button>
-      <button class="tbtn" data-step="3600" title="+1 час (→)">▶</button>
-      <button class="tbtn" data-step="86400" title="+1 день (Shift+→)">▶▶</button>
-      <select id="speed" title="Скорость течения времени">
-        <option value="1">реальное время</option>
-        <option value="60">1 мин / с</option>
-        <option value="600">10 мин / с</option>
-        <option value="3600">1 час / с</option>
-        <option value="21600">6 ч / с</option>
-        <option value="86400">1 день / с</option>
-        <option value="604800">1 нед / с</option>
-        <option value="2592000">1 мес / с</option>
+      <button class="tbtn" data-step="-86400" data-i18n-title="stepMinusDay">◀◀</button>
+      <button class="tbtn" data-step="-3600" data-i18n-title="stepMinusHour">◀</button>
+      <button class="tbtn play" id="btn-play" data-i18n-title="play">❚❚</button>
+      <button class="tbtn" data-step="3600" data-i18n-title="stepPlusHour">▶</button>
+      <button class="tbtn" data-step="86400" data-i18n-title="stepPlusDay">▶▶</button>
+      <select id="speed" data-i18n-title="speedTitle">
+        <option value="1" data-i18n="speeds.0"></option>
+        <option value="60" data-i18n="speeds.1"></option>
+        <option value="600" data-i18n="speeds.2"></option>
+        <option value="3600" data-i18n="speeds.3"></option>
+        <option value="21600" data-i18n="speeds.4"></option>
+        <option value="86400" data-i18n="speeds.5"></option>
+        <option value="604800" data-i18n="speeds.6"></option>
+        <option value="2592000" data-i18n="speeds.7"></option>
       </select>
-      <button class="tbtn now" id="btn-now" title="Вернуться к текущему моменту (N)">Сейчас</button>
-      <input type="datetime-local" id="dt-input" step="60" title="Ввести дату и время">
-      <select id="span" title="Диапазон ползунка">
-        <option value="86400">± 12 ч</option>
-        <option value="2592000" selected>± 15 дней</option>
-        <option value="31536000">± 6 мес</option>
-        <option value="315360000">± 5 лет</option>
-        <option value="3153600000">± 50 лет</option>
+      <button class="tbtn now" id="btn-now" data-i18n="now" data-i18n-title="nowTitle"></button>
+      <input type="datetime-local" id="dt-input" step="60" data-i18n-title="dtTitle">
+      <select id="span" data-i18n-title="spanTitle">
+        <option value="86400" data-i18n="spans.0"></option>
+        <option value="2592000" selected data-i18n="spans.1"></option>
+        <option value="31536000" data-i18n="spans.2"></option>
+        <option value="315360000" data-i18n="spans.3"></option>
+        <option value="3153600000" data-i18n="spans.4"></option>
       </select>
     </div>
     <div class="tb-row slider-row">
@@ -177,19 +178,19 @@
   <!-- МЕСТО НАБЛЮДЕНИЯ -->
   <div class="modal" id="modal-location" hidden>
     <div class="modal-box panel">
-      <header><h2>Место наблюдения</h2><button class="close" id="loc-close">✕</button></header>
+      <header><h2 data-i18n="locHeader"></h2><button class="close" id="loc-close">✕</button></header>
       <div class="body">
-        <label>Город<select id="loc-preset"></select></label>
+        <label><span data-i18n="city"></span><select id="loc-preset"></select></label>
         <div class="row2">
-          <label>Широта, °<input type="number" id="loc-lat" step="0.0001" min="-90" max="90"></label>
-          <label>Долгота, °<input type="number" id="loc-lon" step="0.0001" min="-180" max="180"></label>
+          <label><span data-i18n="lat"></span><input type="number" id="loc-lat" step="0.0001" min="-90" max="90"></label>
+          <label><span data-i18n="lon"></span><input type="number" id="loc-lon" step="0.0001" min="-180" max="180"></label>
         </div>
-        <label>Название<input type="text" id="loc-label" maxlength="40" placeholder="Моё место"></label>
+        <label><span data-i18n="name"></span><input type="text" id="loc-label" maxlength="40" data-i18n-placeholder="namePh"></label>
         <div class="row2">
-          <button class="btn ghost" id="loc-geo">◎ Определить по GPS</button>
-          <button class="btn" id="loc-apply">Применить</button>
+          <button class="btn ghost" id="loc-geo" data-i18n="gps"></button>
+          <button class="btn" id="loc-apply" data-i18n="apply"></button>
         </div>
-        <p class="note">Время в интерфейсе показывается в часовом поясе вашего устройства. Совет: пока это окно открыто, щёлкните по глобусу — координаты подставятся сами.</p>
+        <p class="note" data-i18n="locNote"></p>
       </div>
     </div>
   </div>
@@ -197,18 +198,8 @@
   <!-- СПРАВКА -->
   <div class="modal" id="modal-help" hidden>
     <div class="modal-box panel wide">
-      <header><h2>Как читать AstroScape</h2><button class="close" id="help-close">✕</button></header>
-      <div class="body help">
-        <p><b>Центр</b> — Земля с сеткой координат и точкой наблюдателя. Земля вращается в реальном звёздном времени.</p>
-        <p><b>Кольца</b> — орбиты как на астрологической карте: каждая планета стоит на своём кольце под своей эклиптической долготой. Стебелёк вверх/вниз — эклиптическая широта (преувеличена ×2).</p>
-        <p><b>Внешнее кольцо зодиака</b> делится на 12 знаков по 30° (тропический зодиак). Цветные засечки на нём — проекции планет.</p>
-        <p><b>Золотое кольцо горизонта</b> — горизонт наблюдателя (С, В, Ю, З). Всё, что выше кольца, сейчас видно над горизонтом в выбранной точке. Тусклые подписи — тело под горизонтом.</p>
-        <p><b>Линии между планетами</b> — мажорные аспекты: соединение, секстиль, квадрат, тригон, оппозиция. Толщина/яркость — точность аспекта.</p>
-        <p><b>℞</b> — планета ретроградна (движется по зодиаку вспять относительно Земли).</p>
-        <p><b>Звёзды</b> расставлены реально: за кольцом зодиака видны Регул, Спика, Антарес, Альдебаран — настоящие звёзды зодиакальных созвездий.</p>
-        <p><b>Клавиши:</b> Пробел — пуск/пауза · ←/→ — ±1 час · Shift+←/→ — ±1 день · N — сейчас · H — гелио/гео · T — вид сверху · R — сброс камеры · A — аспекты · B — свечение · L — место.</p>
-        <p><b>Мышь:</b> вращение — левая кнопка, зум — колесо, панорама — правая кнопка. Щелчок по планете — подробности. Щелчок по глобусу в окне «Место» — выбор точки.</p>
-      </div>
+      <header><h2 data-i18n="helpHeader"></h2><button class="close" id="help-close">✕</button></header>
+      <div class="body help" id="help-body"></div>
     </div>
   </div>
 
@@ -218,6 +209,7 @@
 <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
 <script src="js/data.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/astro.js"></script>
 <script src="js/scene.js"></script>
 <script src="js/ui.js"></script>
