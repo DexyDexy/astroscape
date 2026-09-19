@@ -31,6 +31,7 @@
     const HOME_HELIO = new THREE.Vector3(3, 13, -11);
     camera.position.copy(HOME);
     S.camera = camera;
+    S.scene = scene;
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; controls.dampingFactor = 0.06;
@@ -406,15 +407,33 @@
         ticks.push(R * Math.cos(r), 0, R * Math.sin(r), (R + len) * Math.cos(r), 0, (R + len) * Math.sin(r));
       }
       horGroup.add(segments(ticks, '#f5c56b', 0.45));
-      // «стенка» под горизонтом
-      const c = document.createElement('canvas'); c.width = 4; c.height = 64;
-      const x = c.getContext('2d'); const gr = x.createLinearGradient(0, 0, 0, 64);
-      gr.addColorStop(0, 'rgba(245,197,107,0.16)'); gr.addColorStop(1, 'rgba(245,197,107,0)');
-      x.fillStyle = gr; x.fillRect(0, 0, 4, 64);
-      const tex = new THREE.CanvasTexture(c);
-      const wall = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 0.5, 128, 1, true),
-        new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
-      wall.position.y = -0.25; horGroup.add(wall);
+      // «юбка» под горизонтом.
+      // Яркость на ЭКРАНЕ должна падать экспоненциально: brightness(t) = exp(-k·t).
+      // Рендерер выводит кадр в sRGB, поэтому в линейном пространстве задаём
+      // pow(curve, 2.2) — после кодирования это даёт ровно нужную кривую.
+      // Считаем в шейдере: нет 8-битных ступеней канала прозрачности.
+      const WH = 0.9;
+      const wallMat = new THREE.ShaderMaterial({
+        uniforms: {
+          uColor: { value: C('#f5c56b') },
+          uPeak: { value: 0.24 },   // яркость у самого кольца
+          uK: { value: 4.2 },       // скорость экранного затухания
+        },
+        vertexShader: `
+          varying float vT;
+          void main(){ vT = clamp(-position.y / ${WH.toFixed(3)} + 0.5, 0.0, 1.0); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+        fragmentShader: `
+          uniform vec3 uColor; uniform float uPeak; uniform float uK;
+          varying float vT;
+          void main(){
+            float e = exp(-uK);
+            float curve = (exp(-uK * vT) - e) / (1.0 - e);   // 1 у кольца, ровно 0 у нижнего края
+            gl_FragColor = vec4(uColor, uPeak * pow(max(curve, 0.0), 2.2));
+          }`,
+        transparent: true, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending,
+      });
+      const wall = new THREE.Mesh(new THREE.CylinderGeometry(R, R, WH, 128, 1, true), wallMat);
+      wall.position.y = -WH / 2; horGroup.add(wall);
       // меридиан и первый вертикал
       const mer = new THREE.Line(circleGeo(R, 256, 'xy'), lineMat('#f5c56b', 0.22)); horGroup.add(mer);
       const pv = new THREE.Line(circleGeo(R, 256, 'yz'), lineMat('#f5c56b', 0.12)); horGroup.add(pv);
