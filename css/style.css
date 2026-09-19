@@ -10,8 +10,8 @@
   --text: #dbe9f4;
   --muted: rgba(200, 225, 245, 0.55);
   --panel: rgba(3, 8, 16, 0.62);
-  --font-ui: 'Jura', 'Segoe UI', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', Consolas, monospace;
+  --font-ui: 'Jura', 'Segoe UI', 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols 2', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', Consolas, 'Segoe UI Symbol', 'Apple Symbols', monospace;
 }
 
 * { box-sizing: border-box; }
@@ -290,7 +290,7 @@ table.planets td.alt .dn { color: var(--muted); }
 .lbl-planet.below { opacity: .45; }
 .lbl-planet.sel .nm { color: var(--gold); }
 .lbl-planet.hover { background: rgba(0,0,0,.7); }
-.lbl-zodiac { font-size: 18px; text-align: center; opacity: .95; text-shadow: 0 0 10px currentColor; }
+.lbl-zodiac { font-size: 18px; text-align: center; opacity: .95; }
 .lbl-zodiac small { display: block; font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); text-shadow: none; }
 .lbl-card { font-size: 12px; font-weight: 700; letter-spacing: .2em; color: var(--gold); text-shadow: 0 0 8px rgba(245,197,107,.6); }
 .lbl-star { font-size: 10px; letter-spacing: .1em; color: rgba(220,235,255,.65); transform: translate(8px, -10px); }

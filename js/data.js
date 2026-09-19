@@ -30,6 +30,9 @@ window.AstroScape = window.AstroScape || {};
     { glyph: '♌', el: 'fire'  }, { glyph: '♍', el: 'earth' }, { glyph: '♎', el: 'air'   }, { glyph: '♏', el: 'water' },
     { glyph: '♐', el: 'fire'  }, { glyph: '♑', el: 'earth' }, { glyph: '♒', el: 'air'   }, { glyph: '♓', el: 'water' },
   ];
+  // U+FE0E (селектор текстового начертания): без него Windows и iOS подставляют
+  // шрифт эмодзи и рисуют знак белым на цветной плашке, игнорируя цвет CSS.
+  NS.ZODIAC.forEach(z => { z.glyph += '︎'; });
   NS.ELEMENT_COLOR = { fire: '#ff8a5c', earth: '#8ee6a5', air: '#ffe58a', water: '#79b8ff' };
 
   // Порядок совпадает с массивом aspects в словарях

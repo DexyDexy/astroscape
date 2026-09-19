@@ -36,14 +36,18 @@
         else delete state.observer.preset;
       }
       if (s.options) Object.assign(optionsSaved, s.options);
+      // Прежнее значение свечения записывалось автоматически, а не выбиралось
+      // пользователем, поэтому при смене умолчания сбрасываем его один раз.
+      if ((s.prefsVersion || 1) < PREFS_VERSION) optionsSaved.bloom = false;
     } catch (e) {}
     return hasObserver;
   }
   const smallScreen = Math.min(window.innerWidth, window.innerHeight) <= 820;
-  // На телефоне свечение и подписи звёзд по умолчанию выключены: экономят кадры и место
-  const optionsSaved = { aspects: true, bloom: !smallScreen, starLabels: !smallScreen };
+  // Свечение выключено по умолчанию везде; подписи звёзд — только на телефоне
+  const optionsSaved = { aspects: true, bloom: false, starLabels: !smallScreen };
+  const PREFS_VERSION = 2;   // 2: свечение стало выключенным по умолчанию
   function save() {
-    try { localStorage.setItem('astroscape.state', JSON.stringify({ observer: state.observer, options: scene ? scene.options : optionsSaved })); } catch (e) {}
+    try { localStorage.setItem('astroscape.state', JSON.stringify({ observer: state.observer, options: scene ? scene.options : optionsSaved, prefsVersion: PREFS_VERSION })); } catch (e) {}
   }
 
   // ---------- расчёты ----------
