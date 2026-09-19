@@ -39,7 +39,9 @@
     } catch (e) {}
     return hasObserver;
   }
-  const optionsSaved = { aspects: true, bloom: true, starLabels: true };
+  const smallScreen = Math.min(window.innerWidth, window.innerHeight) <= 820;
+  // На телефоне свечение и подписи звёзд по умолчанию выключены: экономят кадры и место
+  const optionsSaved = { aspects: true, bloom: !smallScreen, starLabels: !smallScreen };
   function save() {
     try { localStorage.setItem('astroscape.state', JSON.stringify({ observer: state.observer, options: scene ? scene.options : optionsSaved })); } catch (e) {}
   }
@@ -275,8 +277,31 @@
     UI.toast(NS.t('placeSet', { n: name }));
   }
 
+  // ---------- сообщение, если запустить не удалось ----------
+  function showBootError(detail) {
+    const el = $('loader-err');
+    if (!el || !el.hidden) return;              // сообщение показываем один раз
+    $('loader').classList.remove('hide');
+    el.hidden = false;
+    el.innerHTML = (NS.t ? NS.t('bootFail') : 'The 3D scene could not start.') +
+      '<code>' + String(detail).slice(0, 300).replace(/[<>&]/g, '') + '</code>';
+  }
+  function webglAvailable() {
+    try {
+      const cv = document.createElement('canvas');
+      return !!(cv.getContext('webgl2') || cv.getContext('webgl'));
+    } catch (e) { return false; }
+  }
+  // Сторожевой таймер: модуль three.js мог не запуститься (старый браузер, нет сети)
+  setTimeout(function () {
+    if (!scene) showBootError(webglAvailable() ? 'module not started; UA: ' + navigator.userAgent : 'WebGL unavailable');
+  }, 9000);
+
   // ---------- запуск ----------
   NS.boot = function (libs) {
+    try { bootInner(libs); } catch (e) { showBootError((e && e.message) || e); throw e; }
+  };
+  function bootInner(libs) {
     NS.I18N.init();
     const saved = load();
     if (!saved) {
@@ -319,7 +344,7 @@
     setTimeout(() => $('loader').classList.add('hide'), 600);
     bind();
     if (firstRun) setTimeout(showWelcome, 1300);
-  };
+  }
 
   function select(id) {
     state.selected = state.selected === id ? null : id;

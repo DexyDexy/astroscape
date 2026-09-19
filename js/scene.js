@@ -16,8 +16,11 @@
     S.onInteract = opts.onInteract || function () {};
 
     // ------------------------------------------------------------ базовое
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    // На телефонах ограничиваем плотность пикселей: иначе буферы постобработки
+    // съедают память и вкладка может быть выгружена (особенно в iOS Safari).
+    const small = Math.min(window.innerWidth, window.innerHeight) <= 820;
+    const renderer = new THREE.WebGLRenderer({ antialias: !small, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.6 : 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x000000, 1);
     opts.container.appendChild(renderer.domElement);

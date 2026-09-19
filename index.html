@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<!-- Полифил import maps: Safari до 16.4 (iOS 16.3 и старше) их не понимает и модуль не запускается -->
+<script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.js" crossorigin="anonymous"></script>
 <script type="importmap">
 {
   "imports": {
@@ -26,6 +28,7 @@
 <div id="loader">
   <div class="loader-ring"></div>
   <div class="loader-text">ASTROSCAPE<span data-i18n="loader">…</span></div>
+  <div class="loader-err" id="loader-err" hidden></div>
 </div>
 
 <div id="hud">

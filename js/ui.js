@@ -220,8 +220,10 @@
   function initPanels() {
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem('astroscape.panels') || '{}'); } catch (e) {}
+    const narrow = Math.min(window.innerWidth, window.innerHeight) <= 820;
     document.querySelectorAll('.panel.collapsible').forEach(p => {
       if (saved[p.id] != null) p.classList.toggle('collapsed', saved[p.id]);
+      else if (narrow) p.classList.add('collapsed');   // на телефоне сначала показываем небо, а не панели
       p.querySelector('header').addEventListener('click', () => {
         p.classList.toggle('collapsed');
         saved[p.id] = p.classList.contains('collapsed');
