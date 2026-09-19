@@ -277,6 +277,25 @@
     UI.toast(NS.t('placeSet', { n: name }));
   }
 
+  // ---------- счётчик просмотров ----------
+  // Сайт статический, своего сервера нет, поэтому счёт ведёт внешний сервис.
+  // Наружу уходит только факт открытия страницы. С localhost счётчик не
+  // увеличиваем, чтобы отладочные перезагрузки не накручивали число.
+  const VIEWS_URL = 'https://abacus.jasoncameron.dev/{op}/dexydexy-astroscape/views';
+  function initViews() {
+    const el = $('views');
+    if (!el || typeof fetch !== 'function') return;
+    const local = location.protocol === 'file:' || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+    fetch(VIEWS_URL.replace('{op}', local ? 'get' : 'hit'), { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (!d || typeof d.value !== 'number') return;
+        el.innerHTML = NS.t('views') + ' <b>' + new Intl.NumberFormat(NS.I18N.intl).format(d.value) + '</b>';
+        el.hidden = false;
+      })
+      .catch(() => {});   // счётчик недоступен — просто не показываем
+  }
+
   // ---------- сообщение, если запустить не удалось ----------
   function showBootError(detail) {
     const el = $('loader-err');
@@ -343,6 +362,7 @@
     scene.start(tick);
     setTimeout(() => $('loader').classList.add('hide'), 600);
     bind();
+    initViews();
     if (firstRun) setTimeout(showWelcome, 1300);
   }
 

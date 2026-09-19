@@ -299,6 +299,16 @@ table.planets td.alt .dn { color: var(--muted); }
 .lbl-city { font-size: 9px; letter-spacing: .08em; color: rgba(245,197,107,.8); transform: translate(6px, -10px); text-shadow: 0 0 4px #000, 0 0 2px #000; }
 .lbl-here { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); transform: translate(10px, -14px); }
 
+#views {
+  position: fixed; right: 12px; bottom: 7px; z-index: 3;
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .06em;
+  color: rgba(200, 225, 245, .34); pointer-events: none; user-select: none;
+  text-shadow: 0 0 6px #000, 0 0 3px #000;
+}
+#views b { font-weight: 400; color: var(--cyan-dim); }
+/* на узких окнах угол занят панелью времени */
+@media (max-width: 1100px) { #views { display: none; } }
+
 #toast {
   position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%);
   background: rgba(0,0,0,.8); border: 1px solid var(--line-strong); color: var(--text);
