@@ -236,7 +236,11 @@
   }
   function fillPresets() {
     const sel = $('loc-preset');
-    sel.innerHTML = '<option value="">' + t('chooseCity') + '</option>' + NS.PRESETS.map((p, i) => '<option value="' + i + '">' + p.name + '</option>').join('');
+    // порядок алфавитный по текущему языку; value — исходный индекс в PRESETS
+    const coll = new Intl.Collator(NS.I18N.intl, { sensitivity: 'base' });
+    const items = NS.PRESETS.map((p, i) => ({ i, name: p.name })).sort((a, b) => coll.compare(a.name, b.name));
+    sel.innerHTML = '<option value="">' + t('chooseCity') + '</option>' +
+      items.map(o => '<option value="' + o.i + '">' + o.name + '</option>').join('');
   }
 
   NS.UI = { renderClock, buildRows, renderPlanets, renderDetail, renderMoon, renderSun, renderRetro, renderAspects, renderEclipses, initPanels, toast, fillPresets, drawMoon };

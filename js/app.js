@@ -29,10 +29,11 @@
       if (s.observer && isFinite(s.observer.lat)) {
         hasObserver = true;
         state.observer = s.observer;
-        // город из списка — берём имя на текущем языке (старые записи без preset сопоставляем по координатам)
-        let idx = s.observer.preset;
-        if (idx == null) idx = NS.PRESETS.findIndex(p => p.lat === s.observer.lat && p.lon === s.observer.lon);
-        if (idx != null && idx >= 0 && NS.PRESETS[idx]) { state.observer.name = NS.PRESETS[idx].name; state.observer.preset = idx; }
+        // Город из списка узнаём по координатам, а не по сохранённому номеру:
+        // список пересортирован, старые номера указывали бы на другие города.
+        const idx = NS.PRESETS.findIndex(p => p.lat === s.observer.lat && p.lon === s.observer.lon);
+        if (idx >= 0) { state.observer.name = NS.PRESETS[idx].name; state.observer.preset = idx; }
+        else delete state.observer.preset;
       }
       if (s.options) Object.assign(optionsSaved, s.options);
     } catch (e) {}
@@ -53,14 +54,9 @@
 
   // ---------- города для глобуса ----------
   function cityList() {
-    const out = NS.PRESETS.filter(p => p.en !== 'North Pole' && p.en !== 'Greenwich').map(p => ({ name: p.name, lat: p.lat, lon: p.lon, major: true }));
-    const near = (a, b) => Math.hypot(a.lat - b.lat, (a.lon - b.lon) * Math.cos(a.lat * Math.PI / 180)) < 0.5;
-    Object.values(NS.TZ_HINTS).forEach(h => {
-      if (typeof h === 'string') return;
-      const c = { name: (NS.L.code === 'ru' && h[3]) || h[2], lat: h[0], lon: h[1], major: false };
-      if (!out.some(o => near(o, c))) out.push(c);
-    });
-    return out;
+    return NS.PRESETS
+      .filter(p => p.en !== 'North Pole' && p.en !== 'Greenwich')
+      .map(p => ({ name: p.name, lat: p.lat, lon: p.lon, major: p.m === 1 }));
   }
 
   // ---------- место при первом запуске ----------
@@ -80,14 +76,10 @@
       const idx = NS.PRESETS.findIndex(p => p.en.toLowerCase() === city);
       if (idx >= 0) hint = NS.PRESETS[idx].en;
     }
-    if (!hint) return { tz, observer: null };
-    if (typeof hint === 'string') {
-      const idx = NS.PRESETS.findIndex(p => p.en === hint);
-      if (idx < 0) return { tz, observer: null };
-      const p = NS.PRESETS[idx];
-      return { tz, observer: { name: p.name, lat: p.lat, lon: p.lon, preset: idx, source: 'tz' } };
-    }
-    return { tz, observer: { name: (NS.L.code === 'ru' && hint[3]) || hint[2], lat: hint[0], lon: hint[1], source: 'tz' } };
+    const idx = hint ? NS.PRESETS.findIndex(p => p.en === hint) : -1;
+    if (idx < 0) return { tz, observer: null };
+    const p = NS.PRESETS[idx];
+    return { tz, observer: { name: p.name, lat: p.lat, lon: p.lon, preset: idx, source: 'tz' } };
   }
   // GPS только по явному действию; координаты округляются до 0.01° (около километра)
   function locateGps(ok, fail) {
