@@ -616,6 +616,19 @@
       S.flyTo(new THREE.Vector3(0.001, Math.cos(ob) * d, Math.sin(ob) * d - 0.02));
     };
     S.resetView = function () { S.flyTo(S.mode === 'geo' ? HOME : HOME_HELIO); controls.target.set(0, 0, 0); };
+    // Запомнить / вернуть положение камеры (для режима выбора точки на карте)
+    S.viewState = function () { return { pos: camera.position.clone(), target: controls.target.clone() }; };
+    S.restoreView = function (st) { if (!st) return; controls.target.copy(st.target); S.flyTo(st.pos); };
+    // Подлететь к точке на поверхности Земли, чтобы она смотрела на камеру
+    S.focusOn = function (lat, lon, dist) {
+      const la = lat * DEG, lo = lon * DEG, cl = Math.cos(la);
+      const v = new THREE.Vector3(cl * Math.cos(lo), Math.sin(la), -cl * Math.sin(lo));
+      earthGroup.updateMatrixWorld();
+      earthGroup.localToWorld(v);
+      v.normalize().multiplyScalar(dist || 3.1);
+      controls.target.set(0, 0, 0);
+      S.flyTo(v);
+    };
 
     // ------------------------------------------------------------ выбор мышью
     const ray = new THREE.Raycaster();

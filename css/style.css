@@ -236,6 +236,16 @@ table.planets td.alt .dn { color: var(--muted); }
 #modal-location .modal-box { pointer-events: auto; width: 330px; box-shadow: 0 0 40px rgba(0,0,0,.6); }
 @media (max-width: 1180px) { #modal-location { padding-left: 328px; } }
 @media (max-width: 900px) { #modal-location { justify-content: center; padding-left: 0; pointer-events: auto; background: rgba(0,0,0,.45); } }
+
+/* окно места: режим выбора прямо на карте */
+#modal-location:not(.map-mode) .only-map { display: none; }
+#modal-location.map-mode .only-normal { display: none; }
+#modal-location.map-mode { justify-content: center; align-items: flex-end; padding-left: 0; padding-bottom: 118px; }
+#modal-location.map-mode .modal-box { width: 420px; }
+.loc-live { font-family: var(--font-mono); font-size: 14px; color: var(--gold); text-align: center; padding: 2px 0 12px; }
+.loc-live b { display: block; font-family: var(--font-ui); font-size: 13px; color: var(--text); font-weight: 600; }
+@media (max-width: 900px) { #modal-location.map-mode { padding-bottom: 150px; } }
+
 .modal-box { width: 380px; max-width: calc(100vw - 28px); max-height: calc(100vh - 28px); display: flex; flex-direction: column; }
 .modal-box .body { overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: rgba(127,215,255,.3) transparent; }
 .modal-box .body::-webkit-scrollbar { width: 6px; }

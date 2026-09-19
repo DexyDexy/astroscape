@@ -230,12 +230,32 @@
   }
 
   // ---------- место ----------
-  let prevObserver = null, locApplied = false;
-  function previewObserver(o) { setObserver(o, false); }
+  let prevObserver = null, locApplied = false, prevView = null;
+  function previewObserver(o) { setObserver(o, false); updateLocLive(); }
   function previewFromInputs() {
     const lat = parseFloat($('loc-lat').value), lon = parseFloat($('loc-lon').value);
     if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return;
     previewObserver({ name: $('loc-label').value.trim() || (lat.toFixed(2) + ', ' + lon.toFixed(2)), lat, lon });
+  }
+  function updateLocLive() {
+    const el = $('loc-live'); if (!el) return;
+    const o = state.observer;
+    el.innerHTML = '<b>' + o.name + '</b>' + fmt.coords(o.lat, o.lon);
+  }
+  // Режим «выбрать на карте»: окно сжимается, глобус подлетает к текущей точке
+  function enterMapMode() {
+    const m = $('modal-location');
+    if (m.classList.contains('map-mode')) return;
+    m.classList.add('map-mode');
+    prevView = scene.viewState();
+    scene.focusOn(state.observer.lat, state.observer.lon);
+    updateLocLive();
+  }
+  function exitMapMode() {
+    const m = $('modal-location');
+    if (!m.classList.contains('map-mode')) return;
+    m.classList.remove('map-mode');
+    scene.restoreView(prevView); prevView = null;
   }
   function openLocation() {
     const m = $('modal-location'); m.hidden = false;
@@ -248,6 +268,7 @@
   }
   function closeLocation() {
     if ($('modal-location').hidden) return;
+    exitMapMode();
     $('modal-location').hidden = true; scene.setPickGlobe(false);
     if (!locApplied && prevObserver) setObserver(prevObserver, false);   // отмена — вернуть прежнее место
   }
@@ -285,8 +306,10 @@
         // ближайший город в списке
         let best = null, bd = 1e9;
         NS.PRESETS.forEach(p => { const d = Math.hypot(p.lat - lat, (p.lon - lon) * Math.cos(lat * Math.PI / 180)); if (d < bd) { bd = d; best = p; } });
-        if (best && bd < 3) $('loc-label').value = best.name;
+        if (best && bd < 1.0) $('loc-label').value = best.name;   // ~100 км: иначе подпись вводит в заблуждение
+        else $('loc-label').value = '';
         previewFromInputs();
+        updateLocLive();
       },
     });
     NS.scene = scene; NS.state = state;
@@ -354,6 +377,8 @@
 
     $('btn-location').addEventListener('click', openLocation);
     $('loc-close').addEventListener('click', closeLocation);
+    $('loc-cancel').addEventListener('click', closeLocation);
+    $('loc-map').addEventListener('click', enterMapMode);
     $('loc-apply').addEventListener('click', applyLocation);
     $('loc-preset').addEventListener('change', e => {
       const p = NS.PRESETS[parseInt(e.target.value, 10)];

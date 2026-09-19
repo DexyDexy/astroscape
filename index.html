@@ -180,17 +180,25 @@
     <div class="modal-box panel">
       <header><h2 data-i18n="locHeader"></h2><button class="close" id="loc-close">✕</button></header>
       <div class="body">
-        <label><span data-i18n="city"></span><select id="loc-preset"></select></label>
-        <div class="row2">
-          <label><span data-i18n="lat"></span><input type="number" id="loc-lat" step="0.0001" min="-90" max="90"></label>
-          <label><span data-i18n="lon"></span><input type="number" id="loc-lon" step="0.0001" min="-180" max="180"></label>
+        <div class="only-normal">
+          <label><span data-i18n="city"></span><select id="loc-preset"></select></label>
+          <div class="row2">
+            <label><span data-i18n="lat"></span><input type="number" id="loc-lat" step="0.0001" min="-90" max="90"></label>
+            <label><span data-i18n="lon"></span><input type="number" id="loc-lon" step="0.0001" min="-180" max="180"></label>
+          </div>
+          <label><span data-i18n="name"></span><input type="text" id="loc-label" maxlength="40" data-i18n-placeholder="namePh"></label>
         </div>
-        <label><span data-i18n="name"></span><input type="text" id="loc-label" maxlength="40" data-i18n-placeholder="namePh"></label>
-        <div class="row2">
+        <p class="note only-map" data-i18n="mapHint"></p>
+        <div class="loc-live only-map" id="loc-live">—</div>
+        <div class="row2 only-normal">
+          <button class="btn ghost" id="loc-map" data-i18n="pickOnMap"></button>
           <button class="btn ghost" id="loc-geo" data-i18n="gps"></button>
+        </div>
+        <div class="row2">
+          <button class="btn ghost only-map" id="loc-cancel" data-i18n="cancel"></button>
           <button class="btn" id="loc-apply" data-i18n="apply"></button>
         </div>
-        <p class="note" data-i18n="locNote"></p>
+        <p class="note only-normal" data-i18n="locNote"></p>
       </div>
     </div>
   </div>
