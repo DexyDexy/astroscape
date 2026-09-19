@@ -227,7 +227,7 @@
           float ndl = dot(n, sunDir);
           float day = smoothstep(-0.08, 0.32, ndl);
           float fres = pow(1.0 - max(dot(n, v), 0.0), 3.0);
-          float term = 1.0 - smoothstep(0.0, 0.05, abs(ndl));
+          float term = 1.0 - smoothstep(0.0, 0.025, abs(ndl));   // ширина полосы терминатора
           vec3 col = mix(cNight, cDay, day) + cRim * fres * 1.1 + vec3(0.2,0.45,0.65) * term * 0.45;
           gl_FragColor = vec4(col, 0.96);
         }`,
