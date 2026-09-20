@@ -207,6 +207,84 @@
       const ariesLbl = makeLabel(NS.t('aries'), 'lbl-tiny'); ariesLbl.position.set(NS.EQUATOR_R + 0.6, -0.12, 0); scene.add(ariesLbl);
     })();
 
+
+    // ------------------------------------------------------------ лучи Солнца
+    // Средневековое «пылающее» солнце: остроугольные лучи, изгибающиеся змейкой.
+    // Плоскость всегда развёрнута к камере, волна бежит от основания к остриям.
+    const rayMats = [];
+    function sunRays(scale, opacity) {
+      const mat = new THREE.ShaderMaterial({
+        uniforms: {
+          uTime: { value: 0 },
+          uScale: { value: scale },
+          uColor: { value: C('#ffcf72') },
+          uOpacity: { value: opacity },
+        },
+        vertexShader: `
+          uniform float uScale;
+          varying vec2 vP;
+          void main() {
+            vP = position.xy * 2.0;                                   // [-1, 1]
+            vec4 mv = modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0);     // билборд: центр объекта
+            mv.xy += position.xy * (uScale * 2.0);                    // угол всегда к камере
+            gl_Position = projectionMatrix * mv;
+          }`,
+        fragmentShader: `
+          precision highp float;
+          uniform float uTime; uniform vec3 uColor; uniform float uOpacity;
+          varying vec2 vP;
+          const float PI = 3.141592653589793;
+          const float N     = 20.0;    // число лучей (чётное: длинные чередуются с короткими)
+          const float R0    = 0.30;    // основание у края диска
+          const float LONG  = 1.0;     // остриё длинного луча
+          const float SHORT = 0.68;    // остриё короткого
+          const float AMP   = 0.055;   // размах змейки, радианы
+          const float WID   = 0.085;   // полуширина у основания, радианы
+          const float FREQ  = 1.1;     // сколько волн укладывается вдоль луча
+          const float SPD   = 0.20;    // скорость бега волны наружу
+
+          float rayCov(float a, float r, float idx, out float tOut) {
+            float st = 2.0 * PI / N;
+            float base = -PI + (idx + 0.5) * st;
+            float odd = mod(idx, 2.0);
+            float r1 = mix(LONG, SHORT, odd);
+            float t = (r - R0) / (r1 - R0);
+            tOut = t;
+            if (t < 0.0 || t > 1.0) return 0.0;
+            float amp = AMP * smoothstep(0.0, 0.35, t);
+            float ph = 2.0 * PI * (FREQ * t - uTime * SPD);           // бежит от основания к острию
+            float c = base + amp * sin(ph);
+            float w = WID * pow(max(1.0 - t, 0.0), 0.8) * mix(1.0, 0.82, odd);
+            float d = a - c;
+            d = atan(sin(d), cos(d));
+            float e = max(0.3 * w, 0.004);
+            float cov = 1.0 - smoothstep(w - e, w + e, abs(d));
+            return cov * smoothstep(0.0, 0.06, t);
+          }
+
+          void main() {
+            float r = length(vP);
+            if (r > LONG) discard;
+            float a = atan(vP.y, vP.x);
+            float st = 2.0 * PI / N;
+            float k = floor((a + PI) / st);
+            float cov = 0.0, t = 0.0, tt = 0.0;
+            for (int i = -1; i <= 1; i++) {                            // соседние сектора: луч мог сместиться
+              float cv = rayCov(a, r, k + float(i), tt);
+              if (cv > cov) { cov = cv; t = tt; }
+            }
+            if (cov <= 0.001) discard;
+            float fade = mix(1.0, 0.16, clamp(t, 0.0, 1.0));           // к острию тусклее
+            gl_FragColor = vec4(uColor, cov * fade * uOpacity);
+          }`,
+        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+      });
+      rayMats.push(mat);
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+      m.frustumCulled = false;
+      return m;
+    }
+
     // ------------------------------------------------------------ Земля
     const earthGroup = new THREE.Group(); scene.add(earthGroup);
     const earthMat = new THREE.ShaderMaterial({
@@ -377,6 +455,7 @@
       g.add(mesh);
       const halo = sprite(TEX_GLOW, b.color, b.size * (isSun ? 9 : isMoon ? 3.5 : 5), isSun ? 0.95 : 0.7);
       g.add(halo);
+      if (isSun) g.add(sunRays(0.46, 0.85));
       pickables.push({ obj: halo, id: b.id });
       const retro = sprite(TEX_RING, '#ff6b6b', b.size * 4.2, 0.9); retro.visible = false; g.add(retro);
       const label = makeLabel('', 'lbl-planet'); label.el.style.color = b.color;
@@ -460,6 +539,7 @@
       const sun = new THREE.Group();
       sun.add(new THREE.Mesh(new THREE.SphereGeometry(0.16, 32, 24), new THREE.MeshBasicMaterial({ color: 0xffd36b })));
       sun.add(sprite(TEX_GLOW, '#ffd36b', 1.6, 1));
+      sun.add(sunRays(0.62, 0.8));
       const sl = makeLabel(NS.t('sunLabel'), 'lbl-sun'); sun.add(sl);
       helioGroup.add(sun);
       const bodies = NS.BODIES.filter(b => b.helio).map(b => b.id);
@@ -687,6 +767,7 @@
       function loop(now) {
         requestAnimationFrame(loop);
         const dt = Math.min(0.1, (now - last) / 1000); last = now;
+        for (let i = 0; i < rayMats.length; i++) rayMats[i].uniforms.uTime.value = now * 0.001;
         tick(dt);
         if (fly) {
           fly.t = Math.min(1, fly.t + dt / 0.9);
