@@ -50,9 +50,16 @@
     // постобработка
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    // аргументы: разрешение, сила свечения, радиус размытия, порог яркости
-    const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.3375, 0.2625, 0.3);
+    // Свечение складывается из пяти размытий с ширинами примерно 6, 20, 56, 144 и 352 px.
+    // При весах по умолчанию вклады почти равны, сумма даёт степенной хвост: яркое ядро,
+    // затем длинная почти плоская дымка на пол-экрана — её и видно как некрасивый градиент.
+    // Веса ниже гасят широкие уровни, поэтому яркость спадает почти по экспоненте и дымка
+    // исчезает. Радиус ставим в 0: иначе проход подмешивает к весам их зеркальные значения.
+    // Аргументы: разрешение, сила, радиус, порог яркости.
+    const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.267, 0.0, 0.3);
+    bloom.compositeMaterial.uniforms.bloomFactors.value = [1.0, 0.80, 0.50, 0.22, 0.06];
     composer.addPass(bloom);
+    S.bloom = bloom;
     composer.addPass(new OutputPass());
 
     // свет (для Луны и планет-сфер)
@@ -760,7 +767,9 @@
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-      composer.setSize(window.innerWidth, window.innerHeight);
+      const db = renderer.getDrawingBufferSize(new THREE.Vector2());
+      composer.setSize(db.x, db.y);
+      bloom.setSize(window.innerWidth, window.innerHeight);
       labelRenderer.setSize(window.innerWidth, window.innerHeight);
     });
     let last = performance.now();
