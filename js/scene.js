@@ -50,7 +50,8 @@
     // постобработка
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.45, 0.35, 0.3);
+    // аргументы: разрешение, сила свечения, радиус размытия, порог яркости
+    const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.3375, 0.2625, 0.3);
     composer.addPass(bloom);
     composer.addPass(new OutputPass());
 
