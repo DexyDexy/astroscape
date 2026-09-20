@@ -112,15 +112,27 @@
       o.el = el;
       return o;
     }
-    function glowTexture(inner) {
-      const c = document.createElement('canvas'); c.width = c.height = 128;
+    // Ореол светил. Яркость на ЭКРАНЕ падает как exp(-k·t) и ровно обнуляется у края,
+    // поэтому нет ни плоского плато, ни заметной границы «шарика».
+    // Кривую пишем в цвет, а не в прозрачность: цветовой канал трактуется как sRGB,
+    // его 8 бит распределены перцептивно, и у слабого свечения не появляется ступеней.
+    // В прозрачности та же кривая после поправки на гамму ушла бы ниже одной 255-й.
+    function glowTexture(k) {
+      const N = 160, R = N / 2, kk = k || 6, e = Math.exp(-kk);
+      const c = document.createElement('canvas'); c.width = c.height = N;
       const x = c.getContext('2d');
-      const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
-      g.addColorStop(0, 'rgba(255,255,255,' + (inner || 1) + ')');
-      g.addColorStop(0.25, 'rgba(255,255,255,0.35)');
-      g.addColorStop(0.6, 'rgba(255,255,255,0.06)');
-      g.addColorStop(1, 'rgba(255,255,255,0)');
-      x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+      const img = x.createImageData(N, N), d = img.data;
+      for (let j = 0; j < N; j++) {
+        for (let i = 0; i < N; i++) {
+          const dx = i + 0.5 - R, dy = j + 0.5 - R;
+          const t = Math.min(1, Math.sqrt(dx * dx + dy * dy) / R);
+          const v = Math.max(0, (Math.exp(-kk * t) - e) / (1 - e));
+          const o = (j * N + i) * 4;
+          d[o] = d[o + 1] = d[o + 2] = Math.round(v * 255);
+          d[o + 3] = 255;
+        }
+      }
+      x.putImageData(img, 0, 0);
       const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
     }
     function ringTexture() {
@@ -143,7 +155,7 @@
       x.fillStyle = g; x.fillRect(0, 0, 64, 64);
       return new THREE.CanvasTexture(c);
     }
-    const TEX_GLOW = glowTexture(1), TEX_RING = ringTexture(), TEX_STAR = starTexture();
+    const TEX_GLOW = glowTexture(3), TEX_RING = ringTexture(), TEX_STAR = starTexture();
     function sprite(tex, color, scale, opacity) {
       const m = new THREE.SpriteMaterial({ map: tex, color: C(color), transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false });
       const s = new THREE.Sprite(m); s.scale.setScalar(scale); return s;
