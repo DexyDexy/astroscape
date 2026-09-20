@@ -235,13 +235,13 @@
           varying vec2 vP;
           const float PI = 3.141592653589793;
           const float N     = 20.0;    // число лучей (чётное: длинные чередуются с короткими)
-          const float R0    = 0.30;    // основание у края диска
-          const float LONG  = 1.0;     // остриё длинного луча
+          const float R0    = 0.27;    // основание у края диска (зазор вдвое меньше прежнего)
+          const float LONG  = 0.84;    // остриё длинного луча
           const float SHORT = 0.68;    // остриё короткого
           const float AMP   = 0.055;   // размах змейки, радианы
           const float WID   = 0.085;   // полуширина у основания, радианы
           const float FREQ  = 1.1;     // сколько волн укладывается вдоль луча
-          const float SPD   = 0.20;    // скорость бега волны наружу
+          const float SPD   = 0.30;    // скорость бега волны наружу
 
           float rayCov(float a, float r, float idx, out float tOut) {
             float st = 2.0 * PI / N;
