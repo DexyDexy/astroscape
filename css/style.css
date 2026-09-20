@@ -273,13 +273,13 @@ table.planets td.alt .dn { color: var(--muted); }
 
 /* 3D labels */
 .lbl { font-family: var(--font-ui); pointer-events: none; white-space: nowrap; user-select: none; }
+/* подпись висит под телом; сдвиг по вертикали ставится покадрово из сцены */
 .lbl-planet {
   pointer-events: none;
   display: flex; align-items: center; gap: 6px;
-  transform: translate(14px, -50%);
-  padding: 2px 7px 2px 5px;
-  border-left: 1px solid currentColor;
-  background: linear-gradient(90deg, rgba(0,0,0,.55), rgba(0,0,0,0));
+  padding: 2px 8px 3px;
+  border-top: 1px solid currentColor;
+  background: rgba(0, 0, 0, .55);
   font-size: 12px; letter-spacing: .06em;
   transition: opacity .3s;
 }
@@ -295,7 +295,7 @@ table.planets td.alt .dn { color: var(--muted); }
 .lbl-card { font-size: 12px; font-weight: 700; letter-spacing: .2em; color: var(--gold); text-shadow: 0 0 8px rgba(245,197,107,.6); }
 .lbl-star { font-size: 10px; letter-spacing: .1em; color: rgba(220,235,255,.65); transform: translate(8px, -10px); }
 .lbl-tiny { font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--cyan-dim); }
-.lbl-sun { font-size: 12px; letter-spacing: .1em; color: var(--gold); transform: translate(16px, -50%); }
+.lbl-sun { font-size: 12px; letter-spacing: .1em; color: var(--gold); padding: 2px 8px 3px; border-top: 1px solid currentColor; background: rgba(0, 0, 0, .55); }
 .lbl-city { font-size: 9px; letter-spacing: .08em; color: rgba(245,197,107,.8); transform: translate(6px, -10px); text-shadow: 0 0 4px #000, 0 0 2px #000; }
 .lbl-here { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); transform: translate(10px, -14px); }
 

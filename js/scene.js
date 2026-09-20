@@ -228,6 +228,49 @@
     })();
 
 
+    // Обводка Луны: силуэт шара всегда круг, поэтому рисуем кольцо на билборде.
+    // Толщина задаётся в пикселях экрана и обновляется каждый кадр, иначе на
+    // общем плане линия стала бы тоньше пикселя и пропала.
+    const outlineMats = [];
+    function bodyOutline(radius, color) {
+      const HALF = radius * 1.8;
+      const mat = new THREE.ShaderMaterial({
+        uniforms: {
+          uScale: { value: HALF },
+          uBias: { value: radius },            // сдвиг к камере, чтобы не спорить по глубине с шаром
+          uR: { value: radius / HALF },        // где проходит край шара
+          uW: { value: 0.02 },                 // полутолщина линии в тех же единицах
+          uColor: { value: C(color) },
+        },
+        vertexShader: `
+          uniform float uScale; uniform float uBias;
+          varying vec2 vP;
+          void main() {
+            vP = position.xy * 2.0;
+            vec4 mv = modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+            mv.xy += position.xy * (uScale * 2.0);
+            mv.z += uBias;
+            gl_Position = projectionMatrix * mv;
+          }`,
+        fragmentShader: `
+          precision highp float;
+          uniform float uR; uniform float uW; uniform vec3 uColor;
+          varying vec2 vP;
+          void main() {
+            float d = abs(length(vP) - uR);
+            float a = 1.0 - smoothstep(uW * 0.55, uW * 1.55, d);
+            if (a <= 0.004) discard;
+            gl_FragColor = vec4(uColor, a);
+          }`,
+        transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      });
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+      m.frustumCulled = false;
+      m.userData.half = HALF;
+      outlineMats.push(m);
+      return m;
+    }
+
     // ------------------------------------------------------------ лучи Солнца
     // Средневековое «пылающее» солнце: остроугольные лучи, изгибающиеся змейкой.
     // Плоскость всегда развёрнута к камере, волна бежит от основания к остриям.
@@ -476,16 +519,23 @@
       const halo = sprite(TEX_GLOW, b.color, b.size * (isSun ? 9 : isMoon ? 3.5 : 5), isSun ? 0.95 : 0.7);
       g.add(halo);
       if (isSun) g.add(sunRays(0.46, 0.85));
+      let outline = null;
+      if (isMoon) { outline = bodyOutline(b.size, '#c3d6e6'); g.add(outline); }
       pickables.push({ obj: halo, id: b.id });
       const retro = sprite(TEX_RING, '#ff6b6b', b.size * 4.2, 0.9); retro.visible = false; g.add(retro);
       const label = makeLabel('', 'lbl-planet'); label.el.style.color = b.color;
+      label.center.set(0.5, 0);            // якорь: середина верхнего края плашки
       labelTargets.push({ el: label.el, id: b.id, mode: 'geo' });
       g.add(label);
       geoGroup.add(g);
       const stem = dynLine(2, b.color, 0.4); geoGroup.add(stem);
       const tick = dynLine(2, b.color, 0.9); geoGroup.add(tick);
       const spoke = dynLine(2, b.color, isSun ? 0.35 : 0.12); geoGroup.add(spoke);
-      S.geo[b.id] = { g, mesh, halo, retro, label, stem, tick, spoke, text: '' };
+      // радиус, от которого отсчитывается вынос подписи вниз, и зазор в пикселях.
+      // У Солнца это кончики лучей, а зазор отрицательный: кончики заходят под плашку.
+      S.geo[b.id] = { g, mesh, halo, retro, label, stem, tick, spoke, outline, text: '',
+        labelR: isSun ? 0.46 * 0.65 : b.size * 1.5,
+        labelRel: isSun ? 0.91 : 1, labelGap: isSun ? 0 : 5, labelY: null };
     });
 
     // аспекты
@@ -560,7 +610,8 @@
       sun.add(new THREE.Mesh(new THREE.SphereGeometry(0.16, 32, 24), new THREE.MeshBasicMaterial({ color: 0xffd36b })));
       sun.add(sprite(TEX_GLOW, '#ffd36b', 1.6, 1));
       sun.add(sunRays(0.62, 0.8));
-      const sl = makeLabel(NS.t('sunLabel'), 'lbl-sun'); sun.add(sl);
+      const sl = makeLabel(NS.t('sunLabel'), 'lbl-sun'); sl.center.set(0.5, 0); sun.add(sl);
+      S.helioSun = { g: sun, label: sl, labelR: 0.62 * 0.65, labelRel: 0.91, labelGap: 0, labelY: null };
       helioGroup.add(sun);
       const bodies = NS.BODIES.filter(b => b.helio).map(b => b.id);
       bodies.splice(2, 0, 'Earth');
@@ -571,12 +622,14 @@
         const halo = sprite(TEX_GLOW, b.color, b.size * 5, 0.7); g.add(halo);
         if (id !== 'Earth') pickables.push({ obj: halo, id });
         const label = makeLabel('', 'lbl-planet'); label.el.style.color = b.color;
+        label.center.set(0.5, 0);
         if (id !== 'Earth') labelTargets.push({ el: label.el, id, mode: 'helio' });
         g.add(label);
         helioGroup.add(g);
         const orbit = dynLine(257, b.color, 0.28); helioGroup.add(orbit);
         const ray = dynLine(2, b.color, id === 'Earth' ? 0.35 : 0.18); helioGroup.add(ray);
-        S.helio[id] = { g, halo, label, orbit, ray, orbitDone: false, text: '', def: b };
+        S.helio[id] = { g, halo, label, orbit, ray, orbitDone: false, text: '', def: b,
+          labelR: b.size * 1.5, labelRel: 1, labelGap: 5, labelY: null };
       });
       // Луна возле Земли
       const moon = new THREE.Group();
@@ -587,6 +640,20 @@
 
     // ------------------------------------------------------------ обновление
     const tmpV = new THREE.Vector3(), tmpN = new THREE.Vector3(), tmpE = new THREE.Vector3(), tmpM = new THREE.Matrix4();
+    const tmpW = new THREE.Vector3();
+    // Сколько пикселей экрана занимает единица мира на расстоянии 1 от камеры
+    function focalPx() {
+      return (window.innerHeight / 2) / Math.tan(camera.fov * 0.5 * DEG);
+    }
+    // Подпись висит под телом: отступ считается от его экранного радиуса
+    function placeLabel(G, parent) {
+      if (!G || !G.label) return 0;
+      tmpW.copy(G.g.position); if (parent) parent.localToWorld(tmpW);
+      const d = Math.max(camera.position.distanceTo(tmpW), 1e-4);
+      const y = Math.round(focalPx() * G.labelR / d * (G.labelRel || 1) + G.labelGap);
+      if (G.labelY !== y) { G.labelY = y; G.label.el.style.transform = 'translateY(' + y + 'px)'; }
+      return d;
+    }
     let lastLoc = '';
     S.update = function (f) {
       const ob = f.obliquity * DEG;
@@ -636,6 +703,10 @@
         if (txt !== G.text) { G.text = txt; G.label.el.innerHTML = txt; }
         G.label.el.classList.toggle('below', !s.above);
         G.label.el.classList.toggle('sel', S.selected === b.id);
+        const d = placeLabel(G, eclGroup);
+        if (G.outline) {                       // толщина обводки — постоянная в пикселях
+          G.outline.material.uniforms.uW.value = 1.3 * (d / focalPx()) / G.outline.userData.half;
+        }
       });
       // аспекты
       const pos = aspGeo.attributes.position, col = aspGeo.attributes.color;
@@ -681,7 +752,9 @@
         }
         if (txt !== H.text) { H.text = txt; H.label.el.innerHTML = txt; }
         H.label.el.classList.toggle('sel', S.selected === id);
+        placeLabel(H, null);
       });
+      placeLabel(S.helioSun, null);
       const m = f.states.Moon;
       const md = Astro.eclToLocal(m.lon, m.lat, 0.13, 1);
       // направление на Луну задано в эклиптических координатах → повернуть в мировые (наклон эклиптики)
