@@ -459,12 +459,13 @@
         cDay: { value: new THREE.Color(0.045, 0.145, 0.2) },
         cNight: { value: new THREE.Color(0.0008, 0.0016, 0.0035) },
         cRim: { value: new THREE.Color(0.22, 0.6, 0.9) },
+        cTerm: { value: C('#e0a04a') },            // линия терминатора — цвет группы наблюдателя
       },
       vertexShader: `
         varying vec3 vN; varying vec3 vW; varying vec2 vUv;
         void main(){ vUv = uv; vN = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
       fragmentShader: `
-        uniform vec3 sunDir; uniform vec3 cDay; uniform vec3 cNight; uniform vec3 cRim; uniform sampler2D tNight;
+        uniform vec3 sunDir; uniform vec3 cDay; uniform vec3 cNight; uniform vec3 cRim; uniform sampler2D tNight; uniform vec3 cTerm;
         varying vec3 vN; varying vec3 vW; varying vec2 vUv;
         void main(){
           vec3 n = normalize(vN); vec3 v = normalize(cameraPosition - vW);
@@ -492,7 +493,7 @@
           float lit = max(tx.r + tx.g - 1.25 * tx.b, 0.0);
           vec3 lights = vec3(1.0, 0.72, 0.38) * pow(lit, 1.25) * 1.1;
           vec3 col = mix(cNight, cDay, day) + cRim * fres * mix(0.15, 0.55, day)
-                   + vec3(0.35,0.62,0.85) * term * 0.175 + lights * night;
+                   + cTerm * term * 0.175 + lights * night;
           gl_FragColor = vec4(col, 0.96);
         }`,
       transparent: true, depthWrite: true,
@@ -586,13 +587,15 @@
       });
     }
 
+    // всё, что привязано к наблюдателю (маркер, горизонт, юбка, меридиан), — охристое
+    const OBS_COLOR = '#e0a04a';
     // маркер наблюдателя
     const locGroup = new THREE.Group(); earthGroup.add(locGroup);
-    const locDot = new THREE.Mesh(new THREE.SphereGeometry(0.0045, 12, 8), new THREE.MeshBasicMaterial({ color: 0xf5c56b }));
+    const locDot = new THREE.Mesh(new THREE.SphereGeometry(0.0045, 12, 8), new THREE.MeshBasicMaterial({ color: C(OBS_COLOR) }));
     locGroup.add(locDot);
-    locGroup.add(sprite(TEX_GLOW, '#f5c56b', 0.055, 0.9));
-    const locStem = segments([0, 0, 0, 0, 0.45, 0], '#f5c56b', 0.7); locGroup.add(locStem);
-    const locRing = new THREE.Mesh(new THREE.RingGeometry(0.0125, 0.015, 32), new THREE.MeshBasicMaterial({ color: 0xf5c56b, transparent: true, opacity: 0.8, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
+    locGroup.add(sprite(TEX_GLOW, OBS_COLOR, 0.055, 0.9));
+    const locStem = segments([0, 0, 0, 0, 0.45, 0], OBS_COLOR, 0.7); locGroup.add(locStem);
+    const locRing = new THREE.Mesh(new THREE.RingGeometry(0.0125, 0.015, 32), new THREE.MeshBasicMaterial({ color: C(OBS_COLOR), transparent: true, opacity: 0.8, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
     locRing.rotation.x = -Math.PI / 2; locGroup.add(locRing);
     const locLabel = makeLabel('', 'lbl-here'); locLabel.position.set(0, 0.45, 0); locGroup.add(locLabel);
     // подсолнечная точка
@@ -679,14 +682,14 @@
     const horGroup = new THREE.Group(); horGroup.matrixAutoUpdate = false; scene.add(horGroup);
     (function buildHorizon() {
       const R = NS.HORIZON_R;
-      horGroup.add(circle(R, '#f5c56b', 0.8, 'xz', 360));
+      horGroup.add(circle(R, OBS_COLOR, 0.8, 'xz', 360));
       const ticks = [];
       for (let a = 0; a < 360; a += 5) {
         const r = a * DEG, len = a % 90 === 0 ? 0.28 : a % 30 === 0 ? 0.16 : a % 10 === 0 ? 0.09 : 0.05;
         // азимут от севера (+X) к востоку (+Z)
         ticks.push(R * Math.cos(r), 0, R * Math.sin(r), (R + len) * Math.cos(r), 0, (R + len) * Math.sin(r));
       }
-      horGroup.add(segments(ticks, '#f5c56b', 0.45));
+      horGroup.add(segments(ticks, OBS_COLOR, 0.45));
       // «юбка» под горизонтом.
       // Яркость на ЭКРАНЕ должна падать экспоненциально: brightness(t) = exp(-k·t).
       // Рендерер выводит кадр в sRGB, поэтому в линейном пространстве задаём
@@ -695,7 +698,7 @@
       const WH = 0.9;
       const wallMat = new THREE.ShaderMaterial({
         uniforms: {
-          uColor: { value: C('#f5c56b') },
+          uColor: { value: C(OBS_COLOR) },
           uPeak: { value: 0.24 },   // яркость у самого кольца
           uK: { value: 4.2 },       // скорость экранного затухания
         },
@@ -715,15 +718,15 @@
       const wall = new THREE.Mesh(new THREE.CylinderGeometry(R, R, WH, 128, 1, true), wallMat);
       wall.position.y = -WH / 2; horGroup.add(wall);
       // меридиан и первый вертикал
-      const mer = new THREE.Line(circleGeo(R, 256, 'xy'), lineMat('#f5c56b', 0.22)); horGroup.add(mer);
-      const pv = new THREE.Line(circleGeo(R, 256, 'yz'), lineMat('#f5c56b', 0.12)); horGroup.add(pv);
+      const mer = new THREE.Line(circleGeo(R, 256, 'xy'), lineMat(OBS_COLOR, 0.22)); horGroup.add(mer);
+      const pv = new THREE.Line(circleGeo(R, 256, 'yz'), lineMat(OBS_COLOR, 0.12)); horGroup.add(pv);
       // круги высот 30° и 60°
       [30, 60].forEach(h => {
         const rr = R * Math.cos(h * DEG), yy = R * Math.sin(h * DEG);
-        const cc = circle(rr, '#f5c56b', 0.07, 'xz', 180); cc.position.y = yy; horGroup.add(cc);
+        const cc = circle(rr, OBS_COLOR, 0.07, 'xz', 180); cc.position.y = yy; horGroup.add(cc);
       });
       const zen = makeLabel(NS.t('zenith'), 'lbl-tiny'); zen.position.set(0, R + 0.1, 0); horGroup.add(zen);
-      horGroup.add(segments([0, R - 0.12, 0, 0, R + 0.02, 0], '#f5c56b', 0.6));
+      horGroup.add(segments([0, R - 0.12, 0, 0, R + 0.02, 0], OBS_COLOR, 0.6));
       [[NS.L.cardinal.N, 0], [NS.L.cardinal.E, 90], [NS.L.cardinal.S, 180], [NS.L.cardinal.W, 270]].forEach(([t, a]) => {
         const l = makeLabel(t, 'lbl-card'); const r = a * DEG;
         l.position.set((R + 0.45) * Math.cos(r), 0, (R + 0.45) * Math.sin(r)); horGroup.add(l);
