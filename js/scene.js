@@ -447,26 +447,38 @@
 
     // ------------------------------------------------------------ Земля
     const earthGroup = new THREE.Group(); scene.add(earthGroup);
+    // Ночные огни: NASA Black Marble 2016 (равнопромежуточная проекция, долгота −180…180)
+    const TEX_NIGHT = new THREE.TextureLoader().load('assets/night-lights.jpg');
+    TEX_NIGHT.colorSpace = THREE.SRGBColorSpace;
+    TEX_NIGHT.anisotropy = renderer.capabilities.getMaxAnisotropy();
     const earthMat = new THREE.ShaderMaterial({
       uniforms: {
         sunDir: { value: new THREE.Vector3(1, 0, 0) },
+        tNight: { value: TEX_NIGHT },
         cDay: { value: new THREE.Color(0.035, 0.11, 0.15) },
-        cNight: { value: new THREE.Color(0.004, 0.009, 0.02) },
+        cNight: { value: new THREE.Color(0.0008, 0.0016, 0.0035) },
         cRim: { value: new THREE.Color(0.22, 0.6, 0.9) },
       },
       vertexShader: `
-        varying vec3 vN; varying vec3 vW;
-        void main(){ vN = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+        varying vec3 vN; varying vec3 vW; varying vec2 vUv;
+        void main(){ vUv = uv; vN = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
       fragmentShader: `
-        uniform vec3 sunDir; uniform vec3 cDay; uniform vec3 cNight; uniform vec3 cRim;
-        varying vec3 vN; varying vec3 vW;
+        uniform vec3 sunDir; uniform vec3 cDay; uniform vec3 cNight; uniform vec3 cRim; uniform sampler2D tNight;
+        varying vec3 vN; varying vec3 vW; varying vec2 vUv;
         void main(){
           vec3 n = normalize(vN); vec3 v = normalize(cameraPosition - vW);
           float ndl = dot(n, sunDir);
           float day = smoothstep(-0.08, 0.32, ndl);
           float fres = pow(1.0 - max(dot(n, v), 0.0), 3.0);
           float term = 1.0 - smoothstep(0.0, 0.025, abs(ndl));   // ширина полосы терминатора
-          vec3 col = mix(cNight, cDay, day) + cRim * fres * 1.1 + vec3(0.2,0.45,0.65) * term * 0.45;
+          // огни включаются в сумерках, когда Солнце уходит на несколько градусов под горизонт
+          float night = 1.0 - smoothstep(-0.14, -0.02, ndl);
+          // на карте кроме огней есть подсвеченный луной голубоватый рельеф: оставляем только тёплый свет
+          vec3 tx = texture2D(tNight, vUv).rgb;
+          float lit = max(tx.r + tx.g - 1.25 * tx.b, 0.0);
+          vec3 lights = vec3(1.0, 0.72, 0.38) * pow(lit, 1.25) * 1.1;
+          vec3 col = mix(cNight, cDay, day) + cRim * fres * mix(0.3, 1.1, day)
+                   + vec3(0.2,0.45,0.65) * term * 0.45 + lights * night;
           gl_FragColor = vec4(col, 0.96);
         }`,
       transparent: true, depthWrite: true,

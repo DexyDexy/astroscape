@@ -115,4 +115,5 @@ js/astro.js     расчёты поверх astronomy-engine (положения
 js/scene.js     3D-сцена на three.js
 js/ui.js        DOM-панели и форматирование
 js/app.js       состояние, время, связывание
+assets/night-lights.jpg  ночные огни: NASA Earth Observatory, Black Marble 2016
 ```
