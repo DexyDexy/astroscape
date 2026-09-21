@@ -103,12 +103,21 @@ body {
 .panel header .hint { margin-left: auto; font-size: 11px; color: var(--muted); font-family: var(--font-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .panel header .chev { width: 7px; height: 7px; border-right: 1px solid var(--cyan-dim); border-bottom: 1px solid var(--cyan-dim); transform: rotate(45deg); transition: transform .25s; flex-shrink: 0; }
 .panel.collapsed header { border-bottom-color: transparent; }
+/* свёрнутые панели идут плотной стопкой: без зазоров и пониже */
+.panel.collapsed header { padding-top: 5px; padding-bottom: 5px; }
+.panel.collapsed + .panel.collapsed { margin-top: -13px; }
 .panel.collapsed header .chev { transform: rotate(-45deg); }
 .panel .body { padding: 10px 12px 12px; }
 .panel.collapsed .body { display: none; }
 
 /* brand + clock */
-.brand-panel { padding: 12px 14px 12px; }
+.brand-panel header { padding: 11px 14px 4px; border-bottom: 0; }
+.brand-panel .body { padding: 0 14px 12px; }
+.brand-panel header .hint { font-size: 13px; color: var(--text); opacity: 0; transition: opacity .2s; }
+.brand-panel.collapsed header { padding: 6px 12px; }
+.brand-panel.collapsed header .hint { opacity: 1; }
+.brand-panel.collapsed .brand-name { font-size: 15px; letter-spacing: .3em; }
+.brand-panel.collapsed .brand-sub { display: none; }
 .brand-name { font-size: 22px; letter-spacing: .38em; font-weight: 300; color: #fff; }
 .brand-name b { font-weight: 700; color: var(--cyan); }
 .brand-sub { font-size: 10px; letter-spacing: .3em; text-transform: uppercase; color: var(--muted); margin-top: -2px; }
@@ -168,8 +177,39 @@ body {
 .list .tag.direct { color: var(--green); border-color: rgba(142,230,165,.4); }
 .list .tag.station { color: var(--gold); border-color: rgba(245,197,107,.5); }
 
-/* toolbar */
-.toolbar { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+/* toolbar: справа место под кнопку «открыть/скрыть» */
+.toolbar { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; margin-right: 38px; }
+
+/* Кнопка «открыть/скрыть всё» и номер версии */
+#btn-ui {
+  position: fixed; top: 14px; right: 14px; z-index: 5; width: 30px; height: 30px;
+  display: grid; place-items: center; padding: 0; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--line-strong); backdrop-filter: blur(8px);
+  transition: border-color .2s, box-shadow .2s;
+}
+#btn-ui:hover { border-color: var(--cyan); box-shadow: inset 0 0 12px rgba(127,215,255,.15); }
+#btn-ui i {
+  width: 9px; height: 9px; margin-top: -5px;
+  border-right: 1.5px solid var(--cyan); border-bottom: 1.5px solid var(--cyan);
+  transform: rotate(45deg); transition: transform .25s, margin .25s;
+}
+body.ui-open #btn-ui i { transform: rotate(-135deg); margin-top: 5px; }
+#hud .col, #hud .timebar, #views { transition: opacity .25s, transform .25s; }
+body:not(.ui-open) #hud .col, body:not(.ui-open) #hud .timebar, body:not(.ui-open) #views {
+  opacity: 0; pointer-events: none; transform: translateY(-8px);
+}
+body:not(.ui-open) #hud .col * , body:not(.ui-open) #hud .timebar * { pointer-events: none; }
+#version {
+  position: fixed; left: 12px; bottom: 7px; z-index: 3;
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .06em;
+  color: rgba(200, 225, 245, .34); pointer-events: none; user-select: none;
+  text-shadow: 0 0 6px #000, 0 0 3px #000;
+}
+/* сворачивание полосы времени: остаётся одна строка кнопок */
+.tbtn.fold { padding-left: 9px; padding-right: 9px; }
+.tbtn.fold .chev { display: block; width: 7px; height: 7px; border-right: 1px solid var(--cyan-dim); border-bottom: 1px solid var(--cyan-dim); transform: rotate(-135deg); margin-top: 3px; transition: transform .25s, margin .25s; }
+.timebar.collapsed .tbtn.fold .chev { transform: rotate(45deg); margin-top: -3px; }
+.timebar.collapsed .slider-row { display: none; }
 .tb {
   background: var(--panel); border: 1px solid var(--line); color: var(--muted);
   font-family: inherit; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
@@ -329,10 +369,13 @@ table.planets td.alt .dn { color: var(--muted); }
   #dt-input { margin-left: 0; }
 
   /* Компактная шапка: одна строка с часами и местом, чтобы глобус был виден */
-  .brand-panel { padding: 7px 10px; }
+  .brand-panel header { padding: 7px 10px 2px; }
+  .brand-panel .body { padding: 0 10px 7px; }
   .brand-name { font-size: 15px; letter-spacing: .24em; }
   .brand-sub { display: none; }
-  .brand-panel > .kv { display: none; }
+  .brand-panel .body > .kv { display: none; }
+  .toolbar { margin-right: 38px; }
+  body.ui-open #version { display: none; }
   .clock { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 4px 0 0; }
   .clock-time { font-size: 20px; }
   .clock-date { font-size: 10.5px; margin: 0; }

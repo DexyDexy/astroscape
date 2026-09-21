@@ -58,6 +58,7 @@
   // ---------- часы ----------
   function renderClock(date, obs) {
     setText('clock-time', fmt.timeS(date));
+    setText('brand-hint', fmt.timeS(date));             // видно в свёрнутой шапке
     setText('clock-date', fmt.dateW(date) + ' · ' + fmt.tz());
     setText('clock-utc', fmt.utc(date));
     setText('clock-jd', NS.Astro.jd(date).toFixed(5));

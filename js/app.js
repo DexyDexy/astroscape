@@ -259,6 +259,7 @@
     scene.restoreView(prevView); prevView = null;
   }
   function openLocation() {
+    setMode('geo', true);                    // точку выбирают на глобусе
     const m = $('modal-location'); m.hidden = false;
     prevObserver = state.observer; locApplied = false;
     $('loc-lat').value = state.observer.lat.toFixed(4);
@@ -324,11 +325,13 @@
   }, 9000);
 
   // ---------- запуск ----------
+  NS.VERSION = '1.0.0';
   NS.boot = function (libs) {
     try { bootInner(libs); } catch (e) { showBootError((e && e.message) || e); throw e; }
   };
   function bootInner(libs) {
     NS.I18N.init();
+    $('version').textContent = 'v' + NS.VERSION;
     const saved = load();
     if (!saved) {
       firstRun = true;
@@ -389,15 +392,24 @@
     $('btn-bloom').classList.toggle('on', scene.options.bloom);
     $('btn-view').classList.toggle('on', state.mode === 'helio');
     $('btn-view').textContent = state.mode === 'helio' ? NS.t('btnGeo') : NS.t('btnHelio');
-    $('planets-hint').textContent = state.mode === 'helio' ? NS.t('hintHelio') : NS.t('hintGeo');
+    $('btn-sky').classList.toggle('on', state.mode === 'sky');
+    $('planets-hint').textContent = NS.t(state.mode === 'helio' ? 'hintHelio' : state.mode === 'sky' ? 'hintSky' : 'hintGeo');
+  }
+  function setMode(mode, quiet) {
+    if (state.mode === mode) return;
+    state.mode = mode;
+    scene.setMode(mode);
+    syncToolbar();
+    if (!quiet) UI.toast(NS.t(mode === 'helio' ? 'helioToast' : mode === 'sky' ? 'skyToast' : 'geoToast'), mode === 'sky' ? 3600 : 2200);
+  }
+  function toggleSky() { setMode(state.mode === 'sky' ? 'geo' : 'sky'); }
+  // Все панели и кнопки скрыты, пока не нажата кнопка в правом верхнем углу
+  function setUiOpen(open) {
+    document.body.classList.toggle('ui-open', open);
+    $('btn-ui').setAttribute('aria-expanded', open ? 'true' : 'false');
   }
   function toggleOption(k) { scene.setOption(k, !scene.options[k]); save(); syncToolbar(); }
-  function toggleMode() {
-    state.mode = state.mode === 'geo' ? 'helio' : 'geo';
-    scene.setMode(state.mode);
-    syncToolbar();
-    UI.toast(state.mode === 'helio' ? NS.t('helioToast') : NS.t('geoToast'));
-  }
+  function toggleMode() { setMode(state.mode === 'helio' ? 'geo' : 'helio'); }
 
   function bind() {
     $('btn-play').addEventListener('click', () => { state.playing = !state.playing; if (state.playing && state.live) state.live = state.speed === 1; updateTimeUI(); });
@@ -449,6 +461,16 @@
     $('modal-help').addEventListener('click', e => { if (e.target === $('modal-help')) $('modal-help').hidden = true; });
 
     $('btn-view').addEventListener('click', toggleMode);
+    $('btn-sky').addEventListener('click', toggleSky);
+    $('btn-ui').addEventListener('click', () => setUiOpen(!document.body.classList.contains('ui-open')));
+    // полоса времени сворачивается до одной строки кнопок
+    let tfold = false;
+    try { tfold = localStorage.getItem('astroscape.timefold') === '1'; } catch (e) {}
+    $('timebar').classList.toggle('collapsed', tfold);
+    $('btn-timefold').addEventListener('click', () => {
+      const c = $('timebar').classList.toggle('collapsed');
+      try { localStorage.setItem('astroscape.timefold', c ? '1' : '0'); } catch (e) {}
+    });
     $('btn-top').addEventListener('click', () => scene.topView());
     $('btn-reset').addEventListener('click', () => scene.resetView());
     $('btn-aspects').addEventListener('click', () => toggleOption('aspects'));
@@ -463,6 +485,7 @@
       else if (e.key === 'ArrowRight') setDate(new Date(state.date.getTime() + (e.shiftKey ? 86400 : 3600) * 1000));
       else if (k === 'n' || k === 'т') goNow();
       else if (k === 'h' || k === 'р') toggleMode();
+      else if (k === 'v' || k === 'м') toggleSky();
       else if (k === 't' || k === 'е') scene.topView();
       else if (k === 'r' || k === 'к') scene.resetView();
       else if (k === 'a' || k === 'ф') toggleOption('aspects');

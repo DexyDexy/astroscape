@@ -167,7 +167,7 @@
     const labelTargets = [];   // подписи планет: pointer-events у них выключены, попадание считаем по прямоугольнику
     function labelAt(x, y) {
       for (const t of labelTargets) {
-        if (t.mode !== S.mode) continue;
+        if (t.mode !== (S.mode === 'helio' ? 'helio' : 'geo')) continue;
         const r = t.el.getBoundingClientRect();
         if (r.width && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return t;
       }
@@ -636,7 +636,7 @@
     S.geo = {};
     NS.BODIES.forEach(b => {
       const g = new THREE.Group();
-      geoGroup.add(circle(b.ring, b.color, 0.2, 'xz', 256));
+      const orbitRing = circle(b.ring, b.color, 0.2, 'xz', 256); geoGroup.add(orbitRing);
       const isSun = b.id === 'Sun', isMoon = b.id === 'Moon';
       let mesh;
       if (isMoon) mesh = new THREE.Mesh(new THREE.SphereGeometry(b.size, 32, 24), new THREE.MeshStandardMaterial({ color: 0xe6ecf2, roughness: 1, metalness: 0 }));
@@ -661,7 +661,7 @@
       const spoke = dynLine(2, b.color, isSun ? 0.35 : 0.12); geoGroup.add(spoke);
       // радиус, от которого отсчитывается вынос подписи вниз, и зазор в пикселях.
       // У Солнца это кончики лучей, а зазор отрицательный: кончики заходят под плашку.
-      S.geo[b.id] = { g, mesh, halo, label, stem, tick, spoke, outline, text: '',
+      S.geo[b.id] = { g, mesh, halo, label, stem, tick, spoke, outline, orbitRing, text: '',
         labelR: isSun ? 0.46 * 0.65 : b.size * Math.max(1.5, b.rings ? b.rings.outer * 0.75 : 0),
         labelRel: isSun ? 0.91 : 1, labelGap: isSun ? 0 : 5, labelY: null };
     });
@@ -783,7 +783,7 @@
       if (!G || !G.label) return 0;
       tmpW.copy(G.g.position); if (parent) parent.localToWorld(tmpW);
       const d = Math.max(camera.position.distanceTo(tmpW), 1e-4);
-      const y = Math.round(focalPx() * G.labelR / d * (G.labelRel || 1) + G.labelGap);
+      const y = Math.round(focalPx() * G.labelR * G.g.scale.x / d * (G.labelRel || 1) + G.labelGap);
       if (G.labelY !== y) { G.labelY = y; G.label.el.style.transform = 'translateY(' + y + 'px)'; }
       return d;
     }
@@ -813,10 +813,11 @@
       if (tmpN.lengthSq() < 1e-9) tmpN.set(1, 0, 0); else tmpN.normalize();
       tmpE.crossVectors(tmpN, tmpV);
       tmpM.makeBasis(tmpN, tmpV, tmpE);
+      skyN.copy(tmpN); skyZ.copy(tmpV); skyE.copy(tmpE);
       horGroup.matrix.copy(tmpM);
       horGroup.matrixWorldNeedsUpdate = true;
 
-      if (S.mode === 'geo') updateGeo(f); else updateHelio(f);
+      if (S.mode === 'helio') updateHelio(f); else updateGeo(f);
     };
 
     function updateGeo(f) {
@@ -824,6 +825,15 @@
       NS.BODIES.forEach(b => {
         const s = st[b.id], G = S.geo[b.id];
         const p = Astro.eclToLocal(s.lon, s.lat, b.ring, NS.LAT_SCALE);
+        if (S.mode === 'sky' && b.id === 'Moon' && s.distKm) {
+          // наблюдатель стоит на поверхности, а не в центре Земли: Луна смещается до ~1°
+          eclGroup.updateMatrixWorld();
+          tmpW.copy(skyZ).transformDirection(tmpM.copy(eclGroup.matrixWorld).invert());
+          const k = s.distKm / 6371;
+          const q = [p[0] / b.ring * k - tmpW.x, p[1] / b.ring * k - tmpW.y, p[2] / b.ring * k - tmpW.z];
+          const L = Math.hypot(q[0], q[1], q[2]);
+          p[0] = q[0] / L * b.ring; p[1] = q[1] / L * b.ring; p[2] = q[2] / L * b.ring;
+        }
         G.g.position.set(p[0], p[1], p[2]);
         setLine(G.stem, [[p[0], 0, p[2]], p]);
         const a = s.lon * DEG, Ri = NS.ZODIAC_R - 0.3;
@@ -837,9 +847,10 @@
         G.label.el.classList.toggle('sel', S.selected === b.id);
         const d = placeLabel(G, eclGroup);
         if (G.outline) {                       // толщина обводки — постоянная в пикселях
-          const R = G.outline.userData.sphereR, dd = Math.max(d, R * 1.001);
+          const sc = G.outline.userData.k || 1;
+          const R = G.outline.userData.sphereR * sc, dd = Math.max(d, R * 1.001);
           const dt = dd - R * R / dd, k = Math.sqrt(1 - (R * R) / (dd * dd));
-          G.outline.material.uniforms.uW.value = 1.3 * dt / (focalPx() * G.outline.userData.half * k);
+          G.outline.material.uniforms.uW.value = 1.3 * dt / (focalPx() * G.outline.userData.half * sc * k);
         }
       });
       // аспекты
@@ -902,13 +913,107 @@
 
     // ------------------------------------------------------------ режимы / опции
     S.setMode = function (mode) {
+      const was = S.mode;
       S.mode = mode;
-      const geo = mode === 'geo';
-      earthGroup.visible = geo; horGroup.visible = geo; geoGroup.visible = geo; helioGroup.visible = !geo; subsolar.visible = geo;
-      zodiacGroup.scale.setScalar(geo ? 1 : 1.5);
+      const geo = mode === 'geo', sky = mode === 'sky', helio = mode === 'helio';
+      earthGroup.visible = geo; horGroup.visible = !helio; geoGroup.visible = !helio; helioGroup.visible = helio; subsolar.visible = geo;
+      ground.visible = sky;
+      aspLines.visible = !sky;                 // хорды между телами из центра режут всё небо
+      zodiacGroup.scale.setScalar(helio ? 1.5 : 1);
       Object.values(S.helio).forEach(h => { if (h.orbitDone !== undefined) h.orbitDone = false; });
+      NS.BODIES.forEach(b => {
+        const G = S.geo[b.id];
+        G.orbitRing.visible = G.stem.visible = G.tick.visible = G.spoke.visible = !sky;
+        setBodyScale(G, sky ? skyScale(b) : 1);
+      });
+      S.starLabels.forEach(l => { l.visible = S.options.starLabels; });
+      if (sky) {
+        controls.enabled = false; fly = null;
+        if (was !== 'sky') skyDefault();
+        camera.near = 0.02; camera.updateProjectionMatrix();
+        camera.position.set(0, 0, 0);
+        fadeIn();
+        return;
+      }
+      if (was === 'sky') {
+        controls.enabled = true; camera.up.set(0, 1, 0);
+        camera.fov = 42; camera.near = 0.05; camera.updateProjectionMatrix();
+        controls.target.set(0, 0, 0);
+        camera.position.copy(geo ? HOME : HOME_HELIO).multiplyScalar(0.25);
+        fadeIn();
+      }
       S.flyTo(geo ? HOME : HOME_HELIO);
     };
+
+    // ------------------------------------------------------------ небо из точки наблюдения
+    // Камера стоит в центре Земли: оттуда направления на все светила настоящие
+    // (кольца построены вокруг центра). Горизонт проходит через центр параллельно
+    // горизонту наблюдателя — для далёких объектов это тот же горизонт.
+    const skyN = new THREE.Vector3(1, 0, 0), skyZ = new THREE.Vector3(0, 1, 0), skyE = new THREE.Vector3(0, 0, 1);
+    const look = { az: 180, alt: 22, fov: 70 };               // азимут от севера к востоку, высота, поле зрения
+    const SKY_SIZE = { Sun: 2.4, Moon: 1.5 };                  // условный угловой диаметр, градусы; остальные 0.8°
+    function skyScale(b) {
+      const ang = (SKY_SIZE[b.id] || 0.8) * DEG;
+      return Math.tan(ang / 2) * b.ring / b.size;
+    }
+    // Масштаб тела вместе с его билбордами: они считают размеры в единицах вида и масштаб группы не видят
+    function setBodyScale(G, k) {
+      G.g.scale.setScalar(k);
+      G.g.traverse(o => {
+        const u = o.material && o.material.uniforms;
+        if (!u || !u.uSphereR) return;
+        if (!o.userData.base) o.userData.base = { r: u.uSphereR.value, s: u.uScale.value };
+        u.uSphereR.value = o.userData.base.r * k; u.uScale.value = o.userData.base.s * k;
+      });
+      if (G.outline) G.outline.userData.k = k;
+    }
+    // Земля под горизонтом: затемнение нижней полусферы (камера внутри неё)
+    const ground = new THREE.Mesh(
+      new THREE.SphereGeometry(1.2, 64, 32, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: 0x010203, transparent: true, opacity: 0.84, side: THREE.BackSide, depthTest: false, depthWrite: false }));
+    ground.renderOrder = 5; ground.visible = false; horGroup.add(ground);
+    function fadeIn() {
+      const el = renderer.domElement;
+      el.style.transition = 'none'; el.style.opacity = '0';
+      requestAnimationFrame(() => requestAnimationFrame(() => { el.style.transition = 'opacity .45s'; el.style.opacity = '1'; }));
+    }
+    function skyDefault() {
+      // смотрим на экватор неба: на юг в северном полушарии, на север — в южном
+      look.az = skyZ.y >= 0 ? 180 : 0; look.alt = 22; look.fov = 70;
+      camera.fov = look.fov; camera.updateProjectionMatrix();
+    }
+    const skyDir = new THREE.Vector3();
+    function updateSkyCamera() {
+      const az = look.az * DEG, alt = look.alt * DEG;
+      skyDir.copy(skyN).multiplyScalar(Math.cos(alt) * Math.cos(az))
+        .addScaledVector(skyE, Math.cos(alt) * Math.sin(az)).addScaledVector(skyZ, Math.sin(alt));
+      camera.position.set(0, 0, 0);
+      camera.up.copy(skyZ);
+      camera.lookAt(skyDir);
+      // подписи звёзд под горизонтом прячем
+      if (S.options.starLabels) S.starLabels.forEach(l => { l.visible = l.position.dot(skyZ) > 0; });
+    }
+    let skyDrag = null;
+    renderer.domElement.addEventListener('pointerdown', e => {
+      if (S.mode !== 'sky') return;
+      skyDrag = { x: e.clientX, y: e.clientY, az: look.az, alt: look.alt };
+      S.onInteract();
+    });
+    window.addEventListener('pointermove', e => {
+      if (!skyDrag || S.mode !== 'sky') return;
+      const degPerPx = look.fov / window.innerHeight;           // «тянем небо»: точка под курсором едет за ним
+      look.az = skyDrag.az - (e.clientX - skyDrag.x) * degPerPx;
+      look.alt = Math.max(-89, Math.min(89, skyDrag.alt + (e.clientY - skyDrag.y) * degPerPx));
+    });
+    const endSkyDrag = () => { skyDrag = null; };
+    window.addEventListener('pointerup', endSkyDrag);
+    window.addEventListener('pointercancel', endSkyDrag);
+    renderer.domElement.addEventListener('wheel', e => {
+      if (S.mode !== 'sky') return;
+      e.preventDefault();
+      look.fov = Math.max(12, Math.min(100, look.fov * Math.exp(e.deltaY * 0.0012)));
+      camera.fov = look.fov; camera.updateProjectionMatrix();
+    }, { passive: false });
     S.setOption = function (k, v) {
       S.options[k] = v;
       if (k === 'starLabels') S.starLabels.forEach(l => { l.visible = v; });
@@ -923,12 +1028,16 @@
       controls.autoRotate = false;
     };
     S.topView = function () {
+      if (S.mode === 'sky') { look.alt = 89; return; }             // в небе «сверху» — взгляд в зенит
       const ob = NS.Astro.obliquity(new Date()) * DEG;
       const d = S.mode === 'geo' ? 15 : 24;
       // взгляд с северного полюса эклиптики; лёгкий сдвиг к −Z, чтобы Овен оказался слева, как на карте
       S.flyTo(new THREE.Vector3(0.001, Math.cos(ob) * d, Math.sin(ob) * d - 0.02));
     };
-    S.resetView = function () { S.flyTo(S.mode === 'geo' ? HOME : HOME_HELIO); controls.target.set(0, 0, 0); };
+    S.resetView = function () {
+      if (S.mode === 'sky') { skyDefault(); return; }
+      S.flyTo(S.mode === 'geo' ? HOME : HOME_HELIO); controls.target.set(0, 0, 0);
+    };
     // Запомнить / вернуть положение камеры (для режима выбора точки на карте)
     S.viewState = function () { return { pos: camera.position.clone(), target: controls.target.clone() }; };
     S.restoreView = function (st) { if (!st) return; controls.target.copy(st.target); S.flyTo(st.pos); };
@@ -1007,7 +1116,7 @@
           camera.position.lerpVectors(fly.from, fly.to, k);
           if (fly.t >= 1) fly = null;
         }
-        controls.update();
+        if (S.mode === 'sky') updateSkyCamera(); else controls.update();
         updateCityLabels();
         if (S.options.bloom) composer.render(); else renderer.render(scene, camera);
         labelRenderer.render(scene, camera);

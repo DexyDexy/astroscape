@@ -29,7 +29,7 @@ window.AstroScape = window.AstroScape || {};
   NS.ZODIAC_R = 4.45;      // радиус кольца зодиака
   NS.HORIZON_R = 5.1;      // радиус кольца горизонта
   NS.EQUATOR_R = 5.5;      // небесный экватор
-  NS.LAT_SCALE = 2.0;      // преувеличение эклиптической широты
+  NS.LAT_SCALE = 1.0;      // эклиптическая широта без преувеличения: направления на тела настоящие
 
   NS.ZODIAC = [
     { glyph: '♈', el: 'fire'  }, { glyph: '♉', el: 'earth' }, { glyph: '♊', el: 'air'   }, { glyph: '♋', el: 'water' },

@@ -31,15 +31,22 @@
   <div class="loader-err" id="loader-err" hidden></div>
 </div>
 
+<button id="btn-ui" data-i18n-title="uiToggle" aria-expanded="false"><i></i></button>
+<div id="version"></div>
+
 <div id="hud">
 
   <!-- ЛЕВАЯ КОЛОНКА -->
   <div class="col col-left">
-    <section class="panel brand-panel" id="panel-time">
-      <div class="brand">
-        <div class="brand-name">ASTRO<b>SCAPE</b></div>
-        <div class="brand-sub" data-i18n="brandSub"></div>
-      </div>
+    <section class="panel brand-panel collapsible" id="panel-time">
+      <header>
+        <div class="brand">
+          <div class="brand-name">ASTRO<b>SCAPE</b></div>
+          <div class="brand-sub" data-i18n="brandSub"></div>
+        </div>
+        <span class="hint" id="brand-hint"></span><i class="chev"></i>
+      </header>
+      <div class="body">
       <div class="clock">
         <div class="clock-time" id="clock-time">--:--:--</div>
         <div class="clock-date" id="clock-date">—</div>
@@ -54,6 +61,7 @@
         <span class="loc-text"><b id="loc-name">—</b><small id="loc-coords">—</small></span>
         <span class="loc-edit" data-i18n="locEdit"></span>
       </button>
+      </div>
     </section>
 
     <section class="panel collapsible" id="panel-moon">
@@ -101,6 +109,7 @@
   <div class="col col-right">
     <div class="toolbar">
       <button id="btn-view" class="tb" data-i18n="btnHelio" data-i18n-title="btnViewTitle"></button>
+      <button id="btn-sky" class="tb" data-i18n="btnSky" data-i18n-title="btnSkyTitle"></button>
       <button id="btn-top" class="tb" data-i18n="btnTop" data-i18n-title="btnTopTitle"></button>
       <button id="btn-reset" class="tb" data-i18n-title="btnResetTitle">⟲</button>
       <button id="btn-aspects" class="tb on" data-i18n="btnAspects" data-i18n-title="btnAspectsTitle"></button>
@@ -170,6 +179,7 @@
         <option value="315360000" data-i18n="spans.3"></option>
         <option value="3153600000" data-i18n="spans.4"></option>
       </select>
+      <button class="tbtn fold" id="btn-timefold"><i class="chev"></i></button>
     </div>
     <div class="tb-row slider-row">
       <span class="slider-lbl" id="slider-min">—</span>
