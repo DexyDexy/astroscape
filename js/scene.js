@@ -493,7 +493,7 @@
           float lit = max(tx.r + tx.g - 1.25 * tx.b, 0.0);
           vec3 lights = vec3(1.0, 0.72, 0.38) * pow(lit, 1.25) * 1.1;
           vec3 col = mix(cNight, cDay, day) + cRim * fres * mix(0.15, 0.55, day)
-                   + cTerm * term * 0.175 + lights * night;
+                   + cTerm * term * 0.7 + lights * night;
           gl_FragColor = vec4(col, 0.96);
         }`,
       transparent: true, depthWrite: true,
