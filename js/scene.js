@@ -52,6 +52,32 @@
     // постобработка
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
+    // Страховка перед свечением. Если на какой-то видеокарте шейдер выдаст в пиксель NaN
+    // («не число») или бесконечность, размытие растащит его на большой блок и на кадр
+    // появится чёрный прямоугольник. Здесь такие значения заменяются нулём.
+    const sanitize = new THREE.ShaderMaterial({
+      uniforms: { tDiffuse: { value: null } },
+      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+      fragmentShader: `
+        uniform sampler2D tDiffuse; varying vec2 vUv;
+        void main() {
+          vec4 c = texture2D(tDiffuse, vUv);
+          if (any(isnan(c)) || any(isinf(c))) c = vec4(0.0);
+          gl_FragColor = clamp(c, 0.0, 65000.0);
+        }`,
+      depthTest: false, depthWrite: false,
+    });
+    const sanitizeQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), sanitize);
+    const sanitizeScene = new THREE.Scene(); sanitizeScene.add(sanitizeQuad);
+    const sanitizeCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    composer.addPass({
+      enabled: true, needsSwap: true, clear: false, renderToScreen: false,
+      setSize() {}, dispose() {},
+      render(r, writeBuffer, readBuffer) {
+        sanitize.uniforms.tDiffuse.value = readBuffer.texture;
+        r.setRenderTarget(writeBuffer); r.render(sanitizeScene, sanitizeCam);
+      },
+    });
     // Свечение складывается из пяти размытий с ширинами примерно 6, 20, 56, 144 и 352 px.
     // При весах по умолчанию вклады почти равны, сумма даёт степенной хвост: яркое ядро,
     // затем длинная почти плоская дымка на пол-экрана — её и видно как некрасивый градиент.
@@ -246,7 +272,8 @@
         vec3 c = (modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
         float d = max(length(c), 1e-4);
         vec3 u = c / d;                                       // от камеры к центру
-        vec3 right = normalize(cross(u, vec3(0.0, 1.0, 0.0)));
+        vec3 rx = cross(u, vec3(0.0, 1.0, 0.0));
+        vec3 right = dot(rx, rx) > 1e-8 ? normalize(rx) : vec3(1.0, 0.0, 0.0);
         vec3 up = cross(right, u);
         float R = min(uSphereR, d * 0.999);
         float dt = d - R * R / d;                             // расстояние до плоскости касания
@@ -487,7 +514,8 @@
           float term = 1.0 - smoothstep(0.6 * fw, 1.6 * fw, abs(ndl));
           vec3 ax1 = normalize(cross(sunDir, abs(sunDir.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
           vec3 ax2 = cross(sunDir, ax1);
-          float ang = atan(dot(n, ax2), dot(n, ax1));             // положение вдоль окружности терминатора
+          float py = dot(n, ax2), px = dot(n, ax1);
+          float ang = (abs(px) + abs(py) > 1e-6) ? atan(py, px) : 0.0;   // положение вдоль окружности терминатора
           float dc = ang * 1152.0 / 6.2831853;                     // 1152 штриха по кругу
           float fd = min(fwidth(dc), 0.5);                         // сглаживание краёв штриха на пиксель
           term *= smoothstep(0.25 - fd, 0.25 + fd, abs(fract(dc) - 0.5));
@@ -679,6 +707,10 @@
     aspGeo.setColors(new Float32Array(MAX_ASP * 6));
     const aspMat = new LineMaterial({ linewidth: 2, vertexColors: true, transparent: true, opacity: 0.95,
       blending: THREE.AdditiveBlending, depthWrite: false });
+    aspMat.onBeforeCompile = sh => {
+      sh.vertexShader = sh.vertexShader.replace('dir = normalize( dir );',
+        'dir = dot( dir, dir ) > 1e-12 ? normalize( dir ) : vec2( 1.0, 0.0 );');
+    };
     const aspLines = new LineSegments2(aspGeo, aspMat);
     aspLines.frustumCulled = false;
     geoGroup.add(aspLines);
@@ -860,6 +892,8 @@
       });
       // аспекты
       const pos = aspGeo.attributes.instanceStart.data.array, col = aspGeo.attributes.instanceColorStart.data.array;
+      const aspPrev = S._aspPrev || (S._aspPrev = new Float32Array(pos.length));
+      const colPrev = S._colPrev || (S._colPrev = new Float32Array(col.length));
       let n = 0;
       if (S.options.aspects && f.aspects) {
         for (const asp of f.aspects) {
@@ -871,9 +905,14 @@
           n++;
         }
       }
-      aspGeo.instanceCount = n;
-      aspGeo.attributes.instanceStart.data.needsUpdate = true;
-      aspGeo.attributes.instanceColorStart.data.needsUpdate = true;
+      let changed = n !== aspGeo.instanceCount;
+      for (let i = 0; i < n * 6 && !changed; i++) if (pos[i] !== aspPrev[i] || col[i] !== colPrev[i]) changed = true;
+      if (changed) {
+        aspPrev.set(pos.subarray(0, MAX_ASP * 6)); colPrev.set(col.subarray(0, MAX_ASP * 6));
+        aspGeo.instanceCount = n;
+        aspGeo.attributes.instanceStart.data.needsUpdate = true;
+        aspGeo.attributes.instanceColorStart.data.needsUpdate = true;
+      }
       renderer.getDrawingBufferSize(aspMat.resolution);
     }
 
