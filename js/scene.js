@@ -37,6 +37,7 @@
     S.scene = scene;
 
     const controls = new OrbitControls(camera, renderer.domElement);
+    S.controls = controls;
     controls.enableDamping = true; controls.dampingFactor = 0.06;
     controls.minDistance = 2.0; controls.maxDistance = 70;
     controls.autoRotate = true; controls.autoRotateSpeed = 0.12;
@@ -161,6 +162,7 @@
       const s = new THREE.Sprite(m); s.scale.setScalar(scale); return s;
     }
     const pickables = [];
+    const SUN_DISC = '#f2b150';   // диск Солнца: тот же тёплый золотой, что у лучей
     const labelTargets = [];   // подписи планет: pointer-events у них выключены, попадание считаем по прямоугольнику
     function labelAt(x, y) {
       for (const t of labelTargets) {
@@ -228,6 +230,32 @@
     })();
 
 
+
+    // Плоскость, перпендикулярная лучу «камера → центр тела», в плоскости касания шара.
+    // Круги в такой плоскости проецируются как конусы, соосные с конусом силуэта шара,
+    // поэтому у края кадра они искажаются ровно так же, как сам шар. Экранно-выровненный
+    // билборд так не умеет: у края он смещается относительно эллипса шара.
+    const FACING_VS = `
+      uniform float uScale;    // половина стороны квадрата, мировые единицы
+      uniform float uSphereR;  // радиус шара тела
+      uniform float uLift;     // сдвиг к камере в долях радиуса, против спора глубин
+      varying vec2 vP;
+      void main() {
+        vP = position.xy * 2.0;
+        vec3 c = (modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+        float d = max(length(c), 1e-4);
+        vec3 u = c / d;                                       // от камеры к центру
+        vec3 right = normalize(cross(u, vec3(0.0, 1.0, 0.0)));
+        vec3 up = cross(right, u);
+        float R = min(uSphereR, d * 0.999);
+        float dt = d - R * R / d;                             // расстояние до плоскости касания
+        float k = sqrt(max(1.0 - R * R / (d * d), 0.0));       // радиус касания, делённый на R
+        float at = max(dt - uLift * R, 1e-4);
+        float s = at / dt;                                    // сдвинув плоскость, сохраняем угловой размер
+        vec3 p = u * at + (right * position.x + up * position.y) * (2.0 * uScale * k * s);
+        gl_Position = projectionMatrix * vec4(p, 1.0);
+      }`;
+
     // Обводка Луны: силуэт шара всегда круг, поэтому рисуем кольцо на билборде.
     // Толщина задаётся в пикселях экрана и обновляется каждый кадр, иначе на
     // общем плане линия стала бы тоньше пикселя и пропала.
@@ -237,21 +265,13 @@
       const mat = new THREE.ShaderMaterial({
         uniforms: {
           uScale: { value: HALF },
-          uBias: { value: radius },            // сдвиг к камере, чтобы не спорить по глубине с шаром
+          uSphereR: { value: radius },
+          uLift: { value: 0.25 },              // четверть радиуса к камере: линия не тонет в шаре
           uR: { value: radius / HALF },        // где проходит край шара
           uW: { value: 0.02 },                 // полутолщина линии в тех же единицах
           uColor: { value: C(color) },
         },
-        vertexShader: `
-          uniform float uScale; uniform float uBias;
-          varying vec2 vP;
-          void main() {
-            vP = position.xy * 2.0;
-            vec4 mv = modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0);
-            mv.xy += position.xy * (uScale * 2.0);
-            mv.z += uBias;
-            gl_Position = projectionMatrix * mv;
-          }`,
+        vertexShader: FACING_VS,
         fragmentShader: `
           precision highp float;
           uniform float uR; uniform float uW; uniform vec3 uColor;
@@ -267,31 +287,56 @@
       const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
       m.frustumCulled = false;
       m.userData.half = HALF;
+      m.userData.sphereR = radius;
       outlineMats.push(m);
       return m;
+    }
+
+    // Ореол на той же касательной плоскости, что лучи и обводка: у края кадра
+    // он искажается вместе с шаром и остаётся концентричным с диском.
+    function facingGlow(tex, color, scale, opacity, sphereR) {
+      const mat = new THREE.ShaderMaterial({
+        uniforms: {
+          uScale: { value: scale / 2 }, uSphereR: { value: sphereR }, uLift: { value: 0.0 },
+          uMap: { value: tex }, uColor: { value: C(color) }, uOpacity: { value: opacity },
+        },
+        vertexShader: FACING_VS,
+        fragmentShader: `
+          uniform sampler2D uMap; uniform vec3 uColor; uniform float uOpacity;
+          varying vec2 vP;
+          void main() {
+            vec4 t = texture2D(uMap, vP * 0.5 + 0.5);
+            gl_FragColor = vec4(uColor * t.rgb, t.a * uOpacity);
+            #include <colorspace_fragment>
+          }`,
+        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      });
+      mat.opacity = opacity;
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+      m.frustumCulled = false;
+      m.onBeforeRender = () => { mat.uniforms.uOpacity.value = mat.opacity; };
+      return m;
+    }
+    // Невидимый спрайт того же размера — мишень для клика по телу
+    function pickProxy(scale) {
+      const s = sprite(TEX_GLOW, '#fff', scale, 0); s.material.visible = false; return s;
     }
 
     // ------------------------------------------------------------ лучи Солнца
     // Средневековое «пылающее» солнце: остроугольные лучи, изгибающиеся змейкой.
     // Плоскость всегда развёрнута к камере, волна бежит от основания к остриям.
     const rayMats = [];
-    function sunRays(scale, opacity) {
+    function sunRays(scale, opacity, sphereR) {
       const mat = new THREE.ShaderMaterial({
         uniforms: {
           uTime: { value: 0 },
           uScale: { value: scale },
+          uSphereR: { value: sphereR },
+          uLift: { value: 0.0 },
           uColor: { value: C('#ffcf72') },
           uOpacity: { value: opacity },
         },
-        vertexShader: `
-          uniform float uScale;
-          varying vec2 vP;
-          void main() {
-            vP = position.xy * 2.0;                                   // [-1, 1]
-            vec4 mv = modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0);     // билборд: центр объекта
-            mv.xy += position.xy * (uScale * 2.0);                    // угол всегда к камере
-            gl_Position = projectionMatrix * mv;
-          }`,
+        vertexShader: FACING_VS,
         fragmentShader: `
           precision highp float;
           uniform float uTime; uniform vec3 uColor; uniform float uOpacity;
@@ -348,6 +393,58 @@
       return m;
     }
 
+
+    // Кольца планет: лежат в плоскости экватора планеты, ось задана по данным IAU.
+    const RING_STYLE = { faint: 0, saturn: 1, narrow: 2 };
+    const OBLIQ = 23.4393 * DEG;
+    function poleVector(pole, ecliptic) {
+      const a = pole[0] * DEG, dcl = pole[1] * DEG;
+      const n = new THREE.Vector3(Math.cos(dcl) * Math.cos(a), Math.sin(dcl), -Math.cos(dcl) * Math.sin(a));
+      if (ecliptic) {                 // внутри группы эклиптики: обратный поворот на наклон
+        const y = n.y * Math.cos(OBLIQ) + n.z * Math.sin(OBLIQ);
+        const z = -n.y * Math.sin(OBLIQ) + n.z * Math.cos(OBLIQ);
+        n.set(n.x, y, z);
+      }
+      return n.normalize();
+    }
+    function planetRing(b, radius, ecliptic) {
+      const r = b.rings, inner = r.inner * radius, outer = r.outer * radius;
+      const mat = new THREE.ShaderMaterial({
+        uniforms: {
+          uColor: { value: C(b.color) }, uOpacity: { value: r.opacity },
+          uInner: { value: inner }, uOuter: { value: outer }, uStyle: { value: RING_STYLE[r.style] || 0 },
+        },
+        vertexShader: `
+          varying vec3 vL;
+          void main() { vL = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+        fragmentShader: `
+          precision highp float;
+          uniform vec3 uColor; uniform float uOpacity; uniform float uInner; uniform float uOuter; uniform int uStyle;
+          varying vec3 vL;
+          void main() {
+            float t = (length(vL.xy) - uInner) / (uOuter - uInner);   // 0 у внутреннего края, 1 у внешнего
+            if (t < 0.0 || t > 1.0) discard;
+            float a = smoothstep(0.0, 0.05, t) * (1.0 - smoothstep(0.95, 1.0, t));
+            if (uStyle == 1) {
+              // Сатурн: тусклое кольцо C, яркое B, щель Кассини, кольцо A
+              a *= mix(0.35, 1.0, smoothstep(0.24, 0.32, t));
+              a *= 1.0 - 0.92 * (smoothstep(0.66, 0.69, t) - smoothstep(0.76, 0.79, t));
+              a *= mix(1.0, 0.72, step(0.77, t));
+            } else if (uStyle == 2) {
+              // Уран: несколько узких колец, внешнее ярче
+              a *= (0.2 + 0.8 * pow(0.5 + 0.5 * cos(t * 6.2831853 * 4.5), 8.0)) * mix(0.55, 1.0, t);
+            } else {
+              a *= 0.85;
+            }
+            gl_FragColor = vec4(uColor, a * uOpacity);
+          }`,
+        transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+      });
+      const m = new THREE.Mesh(new THREE.RingGeometry(inner, outer, 160, 1), mat);
+      m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), poleVector(b.pole, ecliptic));
+      return m;
+    }
+
     // ------------------------------------------------------------ Земля
     const earthGroup = new THREE.Group(); scene.add(earthGroup);
     const earthMat = new THREE.ShaderMaterial({
@@ -380,7 +477,7 @@
 
     (function buildGraticule() {
       const arr = [];
-      const R = 1.004;
+      const R = 1.0012;
       const push = (la1, lo1, la2, lo2) => {
         const p = (la, lo) => { const c = Math.cos(la * DEG); return [R * c * Math.cos(lo * DEG), R * Math.sin(la * DEG), -R * c * Math.sin(lo * DEG)]; };
         const a = p(la1, lo1), b = p(la2, lo2); arr.push(a[0], a[1], a[2], b[0], b[1], b[2]);
@@ -397,8 +494,8 @@
       for (let la = -85; la <= 85; la += 5) { if (la % 15 === 0) continue; for (let lo = 0; lo < 360; lo += 4) pushF(la, lo, la, lo + 4); }
       for (let lo = 0; lo < 360; lo += 5) { if (lo % 15 === 0) continue; for (let la = -85; la < 85; la += 5) pushF(la, lo, la + 5, lo); }
       earthGroup.add(segments(fine, '#7fd7ff', 0.05));
-      const eq = circle(1.006, '#7fd7ff', 0.5, 'xz'); earthGroup.add(eq);
-      const pm = circle(1.006, '#7fd7ff', 0.3, 'xy'); earthGroup.add(pm);
+      const eq = circle(1.0014, '#7fd7ff', 0.5, 'xz'); earthGroup.add(eq);
+      const pm = circle(1.0014, '#7fd7ff', 0.3, 'xy'); earthGroup.add(pm);
       // ось
       earthGroup.add(segments([0, -1.7, 0, 0, 1.7, 0], '#7fd7ff', 0.35));
       const n = makeLabel('N', 'lbl-tiny'); n.position.set(0, 1.8, 0); earthGroup.add(n);
@@ -406,7 +503,7 @@
 
     S.setWorld = function (topology) {
       try {
-        const R = 1.008;
+        const R = 1.0016;
         const p = (lo, la) => { const c = Math.cos(la * DEG); return [R * c * Math.cos(lo * DEG), R * Math.sin(la * DEG), -R * c * Math.sin(lo * DEG)]; };
         const toSegs = mesh => {
           const arr = [];
@@ -436,7 +533,7 @@
       if (cityGroup) { earthGroup.remove(cityGroup); cityLabels.length = 0; }
       cityGroup = new THREE.Group(); earthGroup.add(cityGroup);
       const pos = [];
-      const R = 1.01;
+      const R = 1.0022;
       list.forEach(cty => {
         const la = cty.lat * DEG, lo = cty.lon * DEG, c = Math.cos(la);
         const v = new THREE.Vector3(R * c * Math.cos(lo), R * Math.sin(la), -R * c * Math.sin(lo));
@@ -514,15 +611,17 @@
       const isSun = b.id === 'Sun', isMoon = b.id === 'Moon';
       let mesh;
       if (isMoon) mesh = new THREE.Mesh(new THREE.SphereGeometry(b.size, 32, 24), new THREE.MeshStandardMaterial({ color: 0xe6ecf2, roughness: 1, metalness: 0 }));
-      else mesh = new THREE.Mesh(new THREE.SphereGeometry(b.size, 24, 16), new THREE.MeshBasicMaterial({ color: C(b.color) }));
+      else mesh = new THREE.Mesh(new THREE.SphereGeometry(b.size, 24, 16), new THREE.MeshBasicMaterial({ color: C(isSun ? SUN_DISC : b.color) }));
       g.add(mesh);
-      const halo = sprite(TEX_GLOW, b.color, b.size * (isSun ? 9 : isMoon ? 3.5 : 5), isSun ? 0.95 : 0.7);
-      g.add(halo);
-      if (isSun) g.add(sunRays(0.46, 0.85));
+      const haloS = b.size * (isSun ? 9 : isMoon ? 3.5 : 5);
+      const halo = facingGlow(TEX_GLOW, b.color, haloS, isSun ? 0.95 : 0.7, b.size);
+      const pick = pickProxy(haloS);
+      g.add(halo, pick);
+      if (isSun) g.add(sunRays(0.46, 0.85, b.size));
       let outline = null;
       if (isMoon) { outline = bodyOutline(b.size, '#c3d6e6'); g.add(outline); }
-      pickables.push({ obj: halo, id: b.id });
-      const retro = sprite(TEX_RING, '#ff6b6b', b.size * 4.2, 0.9); retro.visible = false; g.add(retro);
+      pickables.push({ obj: pick, id: b.id });
+      if (b.rings) g.add(planetRing(b, b.size, true));
       const label = makeLabel('', 'lbl-planet'); label.el.style.color = b.color;
       label.center.set(0.5, 0);            // якорь: середина верхнего края плашки
       labelTargets.push({ el: label.el, id: b.id, mode: 'geo' });
@@ -533,8 +632,8 @@
       const spoke = dynLine(2, b.color, isSun ? 0.35 : 0.12); geoGroup.add(spoke);
       // радиус, от которого отсчитывается вынос подписи вниз, и зазор в пикселях.
       // У Солнца это кончики лучей, а зазор отрицательный: кончики заходят под плашку.
-      S.geo[b.id] = { g, mesh, halo, retro, label, stem, tick, spoke, outline, text: '',
-        labelR: isSun ? 0.46 * 0.65 : b.size * 1.5,
+      S.geo[b.id] = { g, mesh, halo, label, stem, tick, spoke, outline, text: '',
+        labelR: isSun ? 0.46 * 0.65 : b.size * Math.max(1.5, b.rings ? b.rings.outer * 0.75 : 0),
         labelRel: isSun ? 0.91 : 1, labelGap: isSun ? 0 : 5, labelY: null };
     });
 
@@ -607,9 +706,9 @@
     S.helio = {};
     (function buildHelio() {
       const sun = new THREE.Group();
-      sun.add(new THREE.Mesh(new THREE.SphereGeometry(0.16, 32, 24), new THREE.MeshBasicMaterial({ color: 0xffd36b })));
-      sun.add(sprite(TEX_GLOW, '#ffd36b', 1.6, 1));
-      sun.add(sunRays(0.62, 0.8));
+      sun.add(new THREE.Mesh(new THREE.SphereGeometry(0.16, 32, 24), new THREE.MeshBasicMaterial({ color: C(SUN_DISC) })));
+      sun.add(facingGlow(TEX_GLOW, '#ffd36b', 1.6, 1, 0.16));
+      sun.add(sunRays(0.62, 0.8, 0.16));
       const sl = makeLabel(NS.t('sunLabel'), 'lbl-sun'); sl.center.set(0.5, 0); sun.add(sl);
       S.helioSun = { g: sun, label: sl, labelR: 0.62 * 0.65, labelRel: 0.91, labelGap: 0, labelY: null };
       helioGroup.add(sun);
@@ -619,8 +718,10 @@
         const b = id === 'Earth' ? { id: 'Earth', name: NS.L.planets.Earth, glyph: '⊕', color: '#6fb7ff', size: 0.07 } : NS.BODY[id];
         const g = new THREE.Group();
         g.add(new THREE.Mesh(new THREE.SphereGeometry(b.size * 0.9, 24, 16), new THREE.MeshBasicMaterial({ color: C(b.color) })));
-        const halo = sprite(TEX_GLOW, b.color, b.size * 5, 0.7); g.add(halo);
-        if (id !== 'Earth') pickables.push({ obj: halo, id });
+        if (b.rings) g.add(planetRing(b, b.size * 0.9, false));
+        const halo = facingGlow(TEX_GLOW, b.color, b.size * 5, 0.7, b.size * 0.9);
+        const pick = pickProxy(b.size * 5); g.add(halo, pick);
+        if (id !== 'Earth') pickables.push({ obj: pick, id });
         const label = makeLabel('', 'lbl-planet'); label.el.style.color = b.color;
         label.center.set(0.5, 0);
         if (id !== 'Earth') labelTargets.push({ el: label.el, id, mode: 'helio' });
@@ -696,7 +797,6 @@
         const a = s.lon * DEG, Ri = NS.ZODIAC_R - 0.3;
         setLine(G.tick, [[(Ri - 0.1) * Math.cos(a), 0, -(Ri - 0.1) * Math.sin(a)], [Ri * Math.cos(a), 0, -Ri * Math.sin(a)]]);
         setLine(G.spoke, [b.id === 'Sun' ? [0, 0, 0] : [p[0], 0, p[2]], [(Ri - 0.1) * Math.cos(a), 0, -(Ri - 0.1) * Math.sin(a)]]);
-        G.retro.visible = !!s.retro;
         G.halo.material.opacity = (s.above ? 1 : 0.35) * (b.id === 'Sun' ? 0.95 : 0.7);
         const z = NS.ZODIAC[s.signIdx];
         const txt = '<span class="g">' + b.glyph + '</span><span class="nm">' + b.name + '</span><span class="ps">' + s.deg + '°' + String(s.min).padStart(2, '0') + '′ ' + z.glyph + '</span>' + (s.retro ? '<span class="rx">℞</span>' : '');
@@ -705,7 +805,9 @@
         G.label.el.classList.toggle('sel', S.selected === b.id);
         const d = placeLabel(G, eclGroup);
         if (G.outline) {                       // толщина обводки — постоянная в пикселях
-          G.outline.material.uniforms.uW.value = 1.3 * (d / focalPx()) / G.outline.userData.half;
+          const R = G.outline.userData.sphereR, dd = Math.max(d, R * 1.001);
+          const dt = dd - R * R / dd, k = Math.sqrt(1 - (R * R) / (dd * dd));
+          G.outline.material.uniforms.uW.value = 1.3 * dt / (focalPx() * G.outline.userData.half * k);
         }
       });
       // аспекты

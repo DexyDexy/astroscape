@@ -4,16 +4,22 @@ window.AstroScape = window.AstroScape || {};
   'use strict';
 
   // Тела: порядок = порядок колец (от Земли наружу). Поле name заполняет i18n.
+  // pole — северный полюс вращения (прямое восхождение, склонение; J2000, IAU WGCCRE 2015),
+  // rings — кольца в радиусах планеты.
   NS.BODIES = [
     { id: 'Moon',    glyph: '☽', color: '#e8eef5', ring: 1.55, size: 0.085, helio: false },
     { id: 'Mercury', glyph: '☿', color: '#b8c4cc', ring: 1.85, size: 0.045, helio: true,  period: 88 },
     { id: 'Venus',   glyph: '♀', color: '#f3d9a0', ring: 2.12, size: 0.06,  helio: true,  period: 225 },
     { id: 'Sun',     glyph: '☉', color: '#ffd36b', ring: 2.40, size: 0.11,  helio: false },
     { id: 'Mars',    glyph: '♂', color: '#ff7a59', ring: 2.68, size: 0.05,  helio: true,  period: 687 },
-    { id: 'Jupiter', glyph: '♃', color: '#f0b980', ring: 2.96, size: 0.09,  helio: true,  period: 4333 },
-    { id: 'Saturn',  glyph: '♄', color: '#e6d3a3', ring: 3.24, size: 0.08,  helio: true,  period: 10759 },
-    { id: 'Uranus',  glyph: '♅', color: '#9fe7ea', ring: 3.52, size: 0.065, helio: true,  period: 30687 },
-    { id: 'Neptune', glyph: '♆', color: '#7aa6ff', ring: 3.80, size: 0.065, helio: true,  period: 60190 },
+    { id: 'Jupiter', glyph: '♃', color: '#f0b980', ring: 2.96, size: 0.09,  helio: true,  period: 4333,
+      pole: [268.057, 64.495], rings: { inner: 1.40, outer: 1.81, opacity: 0.22, style: 'faint' } },
+    { id: 'Saturn',  glyph: '♄', color: '#e6d3a3', ring: 3.24, size: 0.08,  helio: true,  period: 10759,
+      pole: [40.589, 83.537], rings: { inner: 1.24, outer: 2.27, opacity: 0.85, style: 'saturn' } },
+    { id: 'Uranus',  glyph: '♅', color: '#9fe7ea', ring: 3.52, size: 0.065, helio: true,  period: 30687,
+      pole: [257.311, -15.175], rings: { inner: 1.60, outer: 2.02, opacity: 0.45, style: 'narrow' } },
+    { id: 'Neptune', glyph: '♆', color: '#7aa6ff', ring: 3.80, size: 0.065, helio: true,  period: 60190,
+      pole: [299.36, 43.46], rings: { inner: 1.69, outer: 2.54, opacity: 0.3, style: 'faint' } },
     { id: 'Pluto',   glyph: '♇', color: '#c9b7d9', ring: 4.05, size: 0.04,  helio: true,  period: 90560 },
   ];
   NS.BODY = {};
