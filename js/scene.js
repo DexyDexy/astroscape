@@ -4,7 +4,8 @@
   const DEG = Math.PI / 180;
 
   function Scene(libs, opts) {
-    const { THREE, OrbitControls, CSS2DRenderer, CSS2DObject, EffectComposer, RenderPass, UnrealBloomPass, OutputPass } = libs;
+    const { THREE, OrbitControls, CSS2DRenderer, CSS2DObject, EffectComposer, RenderPass, UnrealBloomPass, OutputPass,
+      LineSegments2, LineSegmentsGeometry, LineMaterial } = libs;
     const S = this;
     const Astro = NS.Astro;
     S.mode = 'geo';
@@ -469,16 +470,23 @@
           vec3 n = normalize(vN); vec3 v = normalize(cameraPosition - vW);
           float ndl = dot(n, sunDir);
           float day = smoothstep(-0.08, 0.32, ndl);
-          float fres = pow(1.0 - max(dot(n, v), 0.0), 3.0);
-          float term = 1.0 - smoothstep(0.0, 0.025, abs(ndl));   // ширина полосы терминатора
+          float fres = pow(1.0 - max(dot(n, v), 0.0), 4.5);
+          // терминатор: тонкая пунктирная линия постоянной толщины в пикселях
+          float fw = max(fwidth(ndl), 1e-5);
+          float term = 1.0 - smoothstep(0.6 * fw, 1.6 * fw, abs(ndl));
+          vec3 ax1 = normalize(cross(sunDir, abs(sunDir.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
+          vec3 ax2 = cross(sunDir, ax1);
+          float ang = atan(dot(n, ax2), dot(n, ax1));             // положение вдоль окружности терминатора
+          float dash = fract(ang * 72.0 / 6.2831853);              // 72 штриха по кругу
+          term *= smoothstep(0.0, 0.08, dash) * (1.0 - smoothstep(0.5, 0.58, dash));
           // огни включаются в сумерках, когда Солнце уходит на несколько градусов под горизонт
           float night = 1.0 - smoothstep(-0.14, -0.02, ndl);
           // на карте кроме огней есть подсвеченный луной голубоватый рельеф: оставляем только тёплый свет
           vec3 tx = texture2D(tNight, vUv).rgb;
           float lit = max(tx.r + tx.g - 1.25 * tx.b, 0.0);
           vec3 lights = vec3(1.0, 0.72, 0.38) * pow(lit, 1.25) * 1.1;
-          vec3 col = mix(cNight, cDay, day) + cRim * fres * mix(0.3, 1.1, day)
-                   + vec3(0.2,0.45,0.65) * term * 0.45 + lights * night;
+          vec3 col = mix(cNight, cDay, day) + cRim * fres * mix(0.15, 0.55, day)
+                   + vec3(0.35,0.62,0.85) * term * 0.7 + lights * night;
           gl_FragColor = vec4(col, 0.96);
         }`,
       transparent: true, depthWrite: true,
@@ -651,10 +659,13 @@
 
     // аспекты
     const MAX_ASP = 80;
-    const aspGeo = new THREE.BufferGeometry();
-    aspGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(MAX_ASP * 6), 3));
-    aspGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(MAX_ASP * 6), 3));
-    const aspLines = new THREE.LineSegments(aspGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }));
+    // толстые линии: обычные линии WebGL всегда в один пиксель
+    const aspGeo = new LineSegmentsGeometry();
+    aspGeo.setPositions(new Float32Array(MAX_ASP * 6));
+    aspGeo.setColors(new Float32Array(MAX_ASP * 6));
+    const aspMat = new LineMaterial({ linewidth: 2, vertexColors: true, transparent: true, opacity: 0.95,
+      blending: THREE.AdditiveBlending, depthWrite: false });
+    const aspLines = new LineSegments2(aspGeo, aspMat);
     aspLines.frustumCulled = false;
     geoGroup.add(aspLines);
 
@@ -823,19 +834,22 @@
         }
       });
       // аспекты
-      const pos = aspGeo.attributes.position, col = aspGeo.attributes.color;
+      const pos = aspGeo.attributes.instanceStart.data.array, col = aspGeo.attributes.instanceColorStart.data.array;
       let n = 0;
       if (S.options.aspects && f.aspects) {
         for (const asp of f.aspects) {
           if (n >= MAX_ASP) break;
           const pa = S.geo[asp.a].g.position, pb = S.geo[asp.b].g.position;
           const c = C(asp.aspect.color).multiplyScalar(0.25 + 0.75 * asp.tight);
-          pos.setXYZ(n * 2, pa.x, pa.y, pa.z); pos.setXYZ(n * 2 + 1, pb.x, pb.y, pb.z);
-          col.setXYZ(n * 2, c.r, c.g, c.b); col.setXYZ(n * 2 + 1, c.r, c.g, c.b);
+          pos.set([pa.x, pa.y, pa.z, pb.x, pb.y, pb.z], n * 6);
+          col.set([c.r, c.g, c.b, c.r, c.g, c.b], n * 6);
           n++;
         }
       }
-      aspGeo.setDrawRange(0, n * 2); pos.needsUpdate = true; col.needsUpdate = true;
+      aspGeo.instanceCount = n;
+      aspGeo.attributes.instanceStart.data.needsUpdate = true;
+      aspGeo.attributes.instanceColorStart.data.needsUpdate = true;
+      renderer.getDrawingBufferSize(aspMat.resolution);
     }
 
     function updateHelio(f) {
