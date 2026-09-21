@@ -449,7 +449,12 @@
     // ------------------------------------------------------------ Земля
     const earthGroup = new THREE.Group(); scene.add(earthGroup);
     // Ночные огни: NASA Black Marble 2016 (равнопромежуточная проекция, долгота −180…180)
-    const TEX_NIGHT = new THREE.TextureLoader().load('assets/night-lights.jpg');
+    // Страница, открытая с диска (file://), не может отдать WebGL локальную картинку —
+    // браузер считает её «чужой». Тогда берём ту же карту с CDN, он разрешает такое использование.
+    const NIGHT_URL = location.protocol === 'file:'
+      ? 'https://cdn.jsdelivr.net/gh/DexyDexy/astroscape@main/assets/night-lights.jpg'
+      : 'assets/night-lights.jpg';
+    const TEX_NIGHT = new THREE.TextureLoader().load(NIGHT_URL);
     TEX_NIGHT.colorSpace = THREE.SRGBColorSpace;
     TEX_NIGHT.anisotropy = renderer.capabilities.getMaxAnisotropy();
     const earthMat = new THREE.ShaderMaterial({
