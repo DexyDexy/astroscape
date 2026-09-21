@@ -456,7 +456,7 @@
       uniforms: {
         sunDir: { value: new THREE.Vector3(1, 0, 0) },
         tNight: { value: TEX_NIGHT },
-        cDay: { value: new THREE.Color(0.035, 0.11, 0.15) },
+        cDay: { value: new THREE.Color(0.045, 0.145, 0.2) },
         cNight: { value: new THREE.Color(0.0008, 0.0016, 0.0035) },
         cRim: { value: new THREE.Color(0.22, 0.6, 0.9) },
       },
@@ -469,7 +469,12 @@
         void main(){
           vec3 n = normalize(vN); vec3 v = normalize(cameraPosition - vW);
           float ndl = dot(n, sunDir);
-          float day = smoothstep(-0.08, 0.32, ndl);
+          // освещённость по закону Ламберта (яркость ~ косинусу угла Солнца) в линейном
+          // пространстве — после гамма-кодирования градиент выглядит естественно;
+          // плюс узкая полоса сумерек, чтобы край ночи не обрывался резко
+          float lam = pow(max(ndl, 0.0), 0.85);
+          float twi = smoothstep(-0.10, 0.08, ndl);
+          float day = 0.1 * twi + 0.9 * lam;
           float fres = pow(1.0 - max(dot(n, v), 0.0), 4.5);
           // терминатор: тонкая пунктирная линия постоянной толщины в пикселях
           float fw = max(fwidth(ndl), 1e-5);
@@ -477,7 +482,7 @@
           vec3 ax1 = normalize(cross(sunDir, abs(sunDir.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
           vec3 ax2 = cross(sunDir, ax1);
           float ang = atan(dot(n, ax2), dot(n, ax1));             // положение вдоль окружности терминатора
-          float dash = fract(ang * 72.0 / 6.2831853);              // 72 штриха по кругу
+          float dash = fract(ang * 288.0 / 6.2831853);             // 288 штрихов по кругу
           term *= smoothstep(0.0, 0.08, dash) * (1.0 - smoothstep(0.5, 0.58, dash));
           // огни включаются в сумерках, когда Солнце уходит на несколько градусов под горизонт
           float night = 1.0 - smoothstep(-0.14, -0.02, ndl);
