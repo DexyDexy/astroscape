@@ -482,8 +482,9 @@
           vec3 ax1 = normalize(cross(sunDir, abs(sunDir.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
           vec3 ax2 = cross(sunDir, ax1);
           float ang = atan(dot(n, ax2), dot(n, ax1));             // положение вдоль окружности терминатора
-          float dash = fract(ang * 288.0 / 6.2831853);             // 288 штрихов по кругу
-          term *= smoothstep(0.0, 0.08, dash) * (1.0 - smoothstep(0.5, 0.58, dash));
+          float dc = ang * 1152.0 / 6.2831853;                     // 1152 штриха по кругу
+          float fd = min(fwidth(dc), 0.5);                         // сглаживание краёв штриха на пиксель
+          term *= smoothstep(0.25 - fd, 0.25 + fd, abs(fract(dc) - 0.5));
           // огни включаются в сумерках, когда Солнце уходит на несколько градусов под горизонт
           float night = 1.0 - smoothstep(-0.14, -0.02, ndl);
           // на карте кроме огней есть подсвеченный луной голубоватый рельеф: оставляем только тёплый свет
@@ -491,7 +492,7 @@
           float lit = max(tx.r + tx.g - 1.25 * tx.b, 0.0);
           vec3 lights = vec3(1.0, 0.72, 0.38) * pow(lit, 1.25) * 1.1;
           vec3 col = mix(cNight, cDay, day) + cRim * fres * mix(0.15, 0.55, day)
-                   + vec3(0.35,0.62,0.85) * term * 0.7 + lights * night;
+                   + vec3(0.35,0.62,0.85) * term * 0.175 + lights * night;
           gl_FragColor = vec4(col, 0.96);
         }`,
       transparent: true, depthWrite: true,
