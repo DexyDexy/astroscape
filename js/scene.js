@@ -598,11 +598,13 @@
           float side = sl > 1e-4 ? dot(normalize(nV.xy), sxy / sl) : 1.0;
           float near = mix(1.0, smoothstep(0.70, 0.987, side), smoothstep(0.08, 0.35, sl));
           back *= near;
-          float w = tw * back;
+          // Тёплый цвет даёт две причины, берём сильнейшую:
+          // 1) сумерки — Солнце у горизонта этой точки (верх и низ ободка, когда Солнце сбоку);
+          // 2) взгляд навстречу Солнцу сквозь касательную толщу воздуха — тогда краснеет
+          //    именно тот участок ободка, за который уходит Солнце, даже если там уже день.
+          float w = clamp(max(tw * back, pow(g, 4.0) * near), 0.0, 1.0);
           vec3 col = cNight + cDay * blue * (1.0 - 0.65 * w) + warm * w;
           col += mix(cPurpleE, cPurpleM, morning) * tail * 0.5 * back;
-          // на просвет свет идёт сквозь всю толщу воздуха и краснеет (как Земля с Луны в затмение)
-          col = mix(col, warm * w, clamp(pow(g, 3.0) * 0.75 * near, 0.0, 1.0));
           float glow = 1.0 + 1.1 * pow(g, 6.0) * min(1.0, tw + blue);
           gl_FragColor = vec4(col * prof * glow * 0.64, 1.0);   // общая яркость 75% от прежней
         }`,
