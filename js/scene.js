@@ -719,16 +719,17 @@
     // темнее фона. Отступы заданы в координатах самого сектора (по радиусу и по углу),
     // поэтому вставка изогнута по дуге вместе с ним.
     function zodiacFill(color, inner, outer, a0, span) {
+      const w = outer - inner;
       return new THREE.ShaderMaterial({
         uniforms: {
           uColor: { value: C(color) },
           uOpacity: { value: 0.052 },      // фон сектора
-          uDark: { value: 0.71 },          // вставка темнее фона, но мягко: середина между прежней и фоном
+          uDark: { value: 0.71 },          // вставка темнее фона
           uInner: { value: inner }, uOuter: { value: outer },
           uA0: { value: a0 }, uSpan: { value: span },
-          uMargin: { value: (outer - inner) * 0.11 },   // отступ в мировых единицах, одинаковый со всех сторон
-          // целое число волн на сегмент: плетёнка начинается и кончается перекрестьем
-          uCycles: { value: Math.max(3, Math.round(((outer + inner) * 0.5 * span - (outer - inner) * 0.22) / ((outer - inner) * 0.9))) },
+          // кантик: узкий с боков и со стороны центра, широкий со стороны делений шкалы —
+          // прямоугольник заканчивается раньше, чем начинаются самые длинные деления
+          uMargin: { value: new THREE.Vector3(w * 0.11, w * 0.55, w * 0.11) },   // внутрь, наружу, с боков
         },
         vertexShader: `
           varying vec2 vXY;
@@ -737,32 +738,17 @@
           precision highp float;
           uniform vec3 uColor; uniform float uOpacity; uniform float uDark;
           uniform float uInner; uniform float uOuter; uniform float uA0; uniform float uSpan;
-          uniform float uMargin; uniform float uCycles;
+          uniform vec3 uMargin;
           varying vec2 vXY;
           void main() {
             float r = length(vXY);
             float da = mod(atan(vXY.y, vXY.x) - uA0 + 12.566370614, 6.283185307);
-            // расстояния до краёв в мировых единицах: по радиусу и вдоль дуги
-            float er = min(r - uInner, uOuter - r) - uMargin;
-            float ea = min(da, uSpan - da) * r - uMargin;
+            // расстояния до краёв прямоугольника в мировых единицах
+            float er = min(r - uInner - uMargin.x, uOuter - uMargin.y - r);
+            float ea = min(da, uSpan - da) * r - uMargin.z;
             float fr = max(fwidth(r), 1e-5), fa = max(fwidth(da) * r, 1e-5);
             float inside = smoothstep(0.0, fr * 1.5, er) * smoothstep(0.0, fa * 1.5, ea);
-            // Орнамент по вставке, как гравировка на астролябии: плетёнка из двух волн.
-            // Число волн целое на сегмент, поэтому у обоих краёв вставки она приходит
-            // в перекрестье, а не обрывается на случайном месте.
-            float w = uOuter - uInner;
-            float rm = (uInner + uOuter) * 0.5;
-            float ta = (da * rm - uMargin) / max(uSpan * rm - 2.0 * uMargin, 1e-5);   // 0..1 вдоль вставки
-            float tv = (r - uInner - uMargin) / max(w - 2.0 * uMargin, 1e-5);         // 0..1 поперёк
-            float ph = ta * 6.283185307 * uCycles;
-            float amp = 0.30;
-            float fv = fwidth(tv) * 1.2 + 1e-5;
-            float lw = fv * 0.9 + 0.02;                        // полутолщина линии
-            float w1 = 1.0 - smoothstep(lw, lw + fv, abs(tv - 0.5 - amp * sin(ph)));
-            float w2 = 1.0 - smoothstep(lw, lw + fv, abs(tv - 0.5 + amp * sin(ph)));
-            float ends = step(0.0, ta) * step(ta, 1.0);        // плетёнка живёт только внутри вставки
-            float ink = max(w1, w2) * inside * ends;
-            gl_FragColor = vec4(mix(uColor, vec3(1.0), 0.15 * ink), uOpacity * (mix(1.0, uDark, inside) + ink * 0.45));
+            gl_FragColor = vec4(uColor, uOpacity * mix(1.0, uDark, inside));
           }`,
         transparent: true, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending,
       });
