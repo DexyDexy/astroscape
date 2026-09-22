@@ -745,7 +745,21 @@
             float ea = min(da, uSpan - da) * r - uMargin;
             float fr = max(fwidth(r), 1e-5), fa = max(fwidth(da) * r, 1e-5);
             float inside = smoothstep(0.0, fr * 1.5, er) * smoothstep(0.0, fa * 1.5, ea);
-            gl_FragColor = vec4(uColor, uOpacity * mix(1.0, uDark, inside));
+            // Орнамент по тёмной вставке, как гравировка на астролябии: цепочка ромбов
+            // с точками в промежутках и две тонкие направляющие вдоль полосы.
+            float w = uOuter - uInner;
+            float vv = (r - uInner) / w;                       // 0..1 поперёк полосы
+            float uu = da * (uInner + uOuter) * 0.5 / w;       // вдоль полосы, в тех же единицах
+            float t = abs(fract(uu / 0.62) - 0.5) * 2.0;       // треугольная волна вдоль
+            float hy = abs(vv - 0.5) * 2.0;                    // 0 по средней линии
+            float rho = t * 0.55 + hy * 0.62;
+            float fo = fwidth(rho) * 1.2 + 1e-5;
+            float diamond = 1.0 - smoothstep(0.0, fo, abs(rho - 0.42));
+            float dotm = 1.0 - smoothstep(0.0, fo * 2.0, length(vec2((t - 1.0) * 0.55, hy * 0.62)) - 0.05);
+            float fv = fwidth(vv) * 1.2 + 1e-5;
+            float rail = 1.0 - smoothstep(0.0, fv, abs(hy - 0.74));
+            float ink = max(max(diamond, dotm), rail * 0.75) * inside;
+            gl_FragColor = vec4(mix(uColor, vec3(1.0), 0.3 * ink), uOpacity * (mix(1.0, uDark, inside) + ink * 1.1));
           }`,
         transparent: true, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending,
       });
