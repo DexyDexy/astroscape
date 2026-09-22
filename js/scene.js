@@ -551,7 +551,7 @@
       uniforms: {
         uScale: { value: ATMO_HALF }, uSphereR: { value: 1.0 }, uLift: { value: 0.0 },
         uR: { value: 1.0 / ATMO_HALF },          // край шара в координатах квадрата
-        uW: { value: 0.045 / ATMO_HALF },        // толщина ореола (экспоненциальный спад наружу)
+        uW: { value: 0.034 / ATMO_HALF },        // толщина ореола (экспоненциальный спад наружу), 75% от прежней
         sunDir: earthMat.uniforms.sunDir,         // общий с материалом Земли
       },
       vertexShader: ATMO_VS,
@@ -606,7 +606,7 @@
           // на просвет свет идёт сквозь всю толщу воздуха и краснеет (как Земля с Луны в затмение)
           col = mix(col, warm * lit, clamp(pow(g, 3.0) * 0.75 * near, 0.0, 1.0));
           float glow = 1.0 + 1.1 * pow(g, 6.0) * lit;
-          gl_FragColor = vec4(col * prof * glow * 0.85, 1.0);
+          gl_FragColor = vec4(col * prof * glow * 0.64, 1.0);   // общая яркость 75% от прежней
         }`,
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     });
