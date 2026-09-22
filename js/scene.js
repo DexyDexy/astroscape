@@ -726,7 +726,7 @@
           uDark: { value: 0.42 },          // во сколько раз темнее вставка
           uInner: { value: inner }, uOuter: { value: outer },
           uA0: { value: a0 }, uSpan: { value: span },
-          uMargin: { value: new THREE.Vector2(0.10, 0.22) },   // отступы: по углу, по радиусу
+          uMargin: { value: (outer - inner) * 0.11 },   // отступ в мировых единицах, одинаковый со всех сторон
         },
         vertexShader: `
           varying vec2 vXY;
@@ -735,17 +735,16 @@
           precision highp float;
           uniform vec3 uColor; uniform float uOpacity; uniform float uDark;
           uniform float uInner; uniform float uOuter; uniform float uA0; uniform float uSpan;
-          uniform vec2 uMargin;
+          uniform float uMargin;
           varying vec2 vXY;
           void main() {
-            float tr = (length(vXY) - uInner) / (uOuter - uInner);
+            float r = length(vXY);
             float da = mod(atan(vXY.y, vXY.x) - uA0 + 12.566370614, 6.283185307);
-            float ta = da / uSpan;
-            // расстояние до краёв вставки, в долях сектора; края сглажены на пиксель
-            float ea = min(ta - uMargin.x, 1.0 - uMargin.x - ta);
-            float er = min(tr - uMargin.y, 1.0 - uMargin.y - tr);
-            float inside = smoothstep(0.0, max(fwidth(ta), 1e-5) * 1.5, ea)
-                         * smoothstep(0.0, max(fwidth(tr), 1e-5) * 1.5, er);
+            // расстояния до краёв в мировых единицах: по радиусу и вдоль дуги
+            float er = min(r - uInner, uOuter - r) - uMargin;
+            float ea = min(da, uSpan - da) * r - uMargin;
+            float fr = max(fwidth(r), 1e-5), fa = max(fwidth(da) * r, 1e-5);
+            float inside = smoothstep(0.0, fr * 1.5, er) * smoothstep(0.0, fa * 1.5, ea);
             gl_FragColor = vec4(uColor, uOpacity * mix(1.0, uDark, inside));
           }`,
         transparent: true, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending,
