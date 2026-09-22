@@ -325,7 +325,7 @@
   }, 9000);
 
   // ---------- запуск ----------
-  NS.VERSION = '1.0.5';
+  NS.VERSION = '1.0.6';
   NS.boot = function (libs) {
     try { bootInner(libs); } catch (e) { showBootError((e && e.message) || e); throw e; }
   };
