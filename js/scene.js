@@ -573,22 +573,28 @@
           // утро или вечер: скорость точки при вращении Земли вокруг оси Y
           // у полюсов скорость вращения мала — там утро и вечер плавно смешиваются, без шва
           float morning = smoothstep(-0.18, 0.18, dot(cross(vec3(0.0, 1.0, 0.0), n), sd));
-          float day = smoothstep(-0.05, 0.35, mu);
-          float dusk = exp(-pow((mu + 0.04) / 0.13, 2.0));   // полоса сумерек у границы света
-          float tail = exp(-pow((mu + 0.16) / 0.10, 2.0));   // пурпурный хвост в сторону ночи
+          // Солнце освещает атмосферу и чуть за линией терминатора (она выше поверхности)
+          float lit = smoothstep(-0.20, 0.03, mu);
+          // Покраснение: чем ниже Солнце для этой точки, тем длиннее путь света сквозь воздух.
+          // Тёплый цвет плавно слабеет, пока Солнце не поднимется примерно на 45°, а не
+          // только ровно на горизонте — поэтому он виден по всему краю вдоль терминатора.
+          float red = 1.0 - smoothstep(0.0, 0.72, mu);
+          float tail = exp(-pow((mu + 0.15) / 0.09, 2.0));   // пурпурный хвост в сторону ночи
           vec3 cDay     = vec3(0.16, 0.42, 1.00);
           vec3 cNight   = vec3(0.010, 0.020, 0.060);
           vec3 cSunset  = vec3(1.00, 0.30, 0.07);            // глубокий оранжево-красный
           vec3 cSunrise = vec3(1.00, 0.62, 0.42);            // розово-золотой, светлее
           vec3 cPurpleE = vec3(0.45, 0.10, 0.35);            // вечерний пурпур
           vec3 cPurpleM = vec3(0.30, 0.16, 0.42);            // утренний, холоднее
-          vec3 col = mix(cNight, cDay, day);
-          col = mix(col, mix(cSunset, cSunrise, morning), clamp(dusk * 0.95, 0.0, 1.0));
+          vec3 warm = mix(cSunset, cSunrise, morning);
+          vec3 col = cNight + mix(cDay, warm, pow(red, 1.6)) * lit;
           col += mix(cPurpleE, cPurpleM, morning) * tail * 0.6;
           // на просвет: смотрим сквозь край атмосферы в сторону Солнца
           vec3 sunV = normalize(mat3(viewMatrix) * sd);
           float g = max(dot(normalize(vView), sunV), 0.0);
-          float glow = 1.0 + 1.8 * pow(g, 6.0) * smoothstep(-0.2, 0.1, mu);
+          // на просвет свет идёт сквозь всю толщу воздуха и краснеет (как Земля с Луны в затмение)
+          col = mix(col, warm * lit, clamp(pow(g, 3.0) * 0.75, 0.0, 1.0));
+          float glow = 1.0 + 1.1 * pow(g, 6.0) * lit;
           gl_FragColor = vec4(col * prof * glow * 0.85, 1.0);
         }`,
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
