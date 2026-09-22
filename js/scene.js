@@ -727,6 +727,8 @@
           uInner: { value: inner }, uOuter: { value: outer },
           uA0: { value: a0 }, uSpan: { value: span },
           uMargin: { value: (outer - inner) * 0.11 },   // отступ в мировых единицах, одинаковый со всех сторон
+          // целое число волн на сегмент: плетёнка начинается и кончается перекрестьем
+          uCycles: { value: Math.max(3, Math.round(((outer + inner) * 0.5 * span - (outer - inner) * 0.22) / ((outer - inner) * 0.9))) },
         },
         vertexShader: `
           varying vec2 vXY;
@@ -735,7 +737,7 @@
           precision highp float;
           uniform vec3 uColor; uniform float uOpacity; uniform float uDark;
           uniform float uInner; uniform float uOuter; uniform float uA0; uniform float uSpan;
-          uniform float uMargin;
+          uniform float uMargin; uniform float uCycles;
           varying vec2 vXY;
           void main() {
             float r = length(vXY);
@@ -745,20 +747,22 @@
             float ea = min(da, uSpan - da) * r - uMargin;
             float fr = max(fwidth(r), 1e-5), fa = max(fwidth(da) * r, 1e-5);
             float inside = smoothstep(0.0, fr * 1.5, er) * smoothstep(0.0, fa * 1.5, ea);
-            // Орнамент по вставке, как гравировка на астролябии: плетёнка из двух волн,
-            // идущих вдоль полосы, и тонкие направляющие у её краёв.
+            // Орнамент по вставке, как гравировка на астролябии: плетёнка из двух волн.
+            // Число волн целое на сегмент, поэтому у обоих краёв вставки она приходит
+            // в перекрестье, а не обрывается на случайном месте.
             float w = uOuter - uInner;
-            float vv = (r - uInner) / w;                       // 0..1 поперёк полосы
-            float uu = da * (uInner + uOuter) * 0.5 / w;       // вдоль полосы, в тех же единицах
-            float ph = uu * 6.283185307 / 0.9;                 // период плетёнки
-            float amp = 0.17;
-            float fv = fwidth(vv) * 1.2 + 1e-5;
-            float lw = fv * 0.9 + 0.012;                       // полутолщина линии
-            float w1 = 1.0 - smoothstep(lw, lw + fv, abs(vv - 0.5 - amp * sin(ph)));
-            float w2 = 1.0 - smoothstep(lw, lw + fv, abs(vv - 0.5 + amp * sin(ph)));
-            float rail = 1.0 - smoothstep(lw * 0.8, lw * 0.8 + fv, abs(abs(vv - 0.5) - 0.38));
-            float ink = max(max(w1, w2), rail * 0.7) * inside;
-            gl_FragColor = vec4(mix(uColor, vec3(1.0), 0.3 * ink), uOpacity * (mix(1.0, uDark, inside) + ink * 0.9));
+            float rm = (uInner + uOuter) * 0.5;
+            float ta = (da * rm - uMargin) / max(uSpan * rm - 2.0 * uMargin, 1e-5);   // 0..1 вдоль вставки
+            float tv = (r - uInner - uMargin) / max(w - 2.0 * uMargin, 1e-5);         // 0..1 поперёк
+            float ph = ta * 6.283185307 * uCycles;
+            float amp = 0.30;
+            float fv = fwidth(tv) * 1.2 + 1e-5;
+            float lw = fv * 0.9 + 0.02;                        // полутолщина линии
+            float w1 = 1.0 - smoothstep(lw, lw + fv, abs(tv - 0.5 - amp * sin(ph)));
+            float w2 = 1.0 - smoothstep(lw, lw + fv, abs(tv - 0.5 + amp * sin(ph)));
+            float ends = step(0.0, ta) * step(ta, 1.0);        // плетёнка живёт только внутри вставки
+            float ink = max(w1, w2) * inside * ends;
+            gl_FragColor = vec4(mix(uColor, vec3(1.0), 0.15 * ink), uOpacity * (mix(1.0, uDark, inside) + ink * 0.45));
           }`,
         transparent: true, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending,
       });
