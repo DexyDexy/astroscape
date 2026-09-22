@@ -489,7 +489,7 @@
       uniforms: {
         sunDir: { value: new THREE.Vector3(1, 0, 0) },
         tNight: { value: TEX_NIGHT },
-        cDay: { value: new THREE.Color(0.045, 0.145, 0.2) },
+        cDay: { value: new THREE.Color(0.040, 0.175, 0.255) },   // дневная сторона: светлее и холоднее
         cNight: { value: new THREE.Color(0.0008, 0.0016, 0.0035) },
         cRim: { value: new THREE.Color(0.22, 0.6, 0.9) },
         cTerm: { value: C('#e0a04a') },            // линия терминатора — цвет группы наблюдателя
@@ -581,7 +581,7 @@
           // только ровно на горизонте — поэтому он виден по всему краю вдоль терминатора.
           float red = 1.0 - smoothstep(0.0, 0.72, mu);
           float tail = exp(-pow((mu + 0.15) / 0.09, 2.0));   // пурпурный хвост в сторону ночи
-          vec3 cDay     = vec3(0.16, 0.42, 1.00);
+          vec3 cDay     = vec3(0.09, 0.40, 0.70);            // дневная атмосфера: темнее и в бирюзу
           vec3 cNight   = vec3(0.010, 0.020, 0.060);
           vec3 cSunset  = vec3(1.00, 0.30, 0.07);            // глубокий оранжево-красный
           vec3 cSunrise = vec3(1.00, 0.62, 0.42);            // розово-золотой, светлее
