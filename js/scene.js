@@ -715,6 +715,43 @@
     subsolar.add(sprite(TEX_GLOW, '#ffd36b', 0.18, 0.9));
     const ssl = makeLabel(NS.t('noonMark'), 'lbl-tiny'); ssl.position.set(0, 0.06, 0); subsolar.add(ssl);
 
+    // Заливка сектора знака: внутри — прямоугольная вставка с отступом от краёв,
+    // темнее фона. Отступы заданы в координатах самого сектора (по радиусу и по углу),
+    // поэтому вставка изогнута по дуге вместе с ним.
+    function zodiacFill(color, inner, outer, a0, span) {
+      return new THREE.ShaderMaterial({
+        uniforms: {
+          uColor: { value: C(color) },
+          uOpacity: { value: 0.052 },      // фон сектора
+          uDark: { value: 0.42 },          // во сколько раз темнее вставка
+          uInner: { value: inner }, uOuter: { value: outer },
+          uA0: { value: a0 }, uSpan: { value: span },
+          uMargin: { value: new THREE.Vector2(0.10, 0.22) },   // отступы: по углу, по радиусу
+        },
+        vertexShader: `
+          varying vec2 vXY;
+          void main(){ vXY = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+        fragmentShader: `
+          precision highp float;
+          uniform vec3 uColor; uniform float uOpacity; uniform float uDark;
+          uniform float uInner; uniform float uOuter; uniform float uA0; uniform float uSpan;
+          uniform vec2 uMargin;
+          varying vec2 vXY;
+          void main() {
+            float tr = (length(vXY) - uInner) / (uOuter - uInner);
+            float da = mod(atan(vXY.y, vXY.x) - uA0 + 12.566370614, 6.283185307);
+            float ta = da / uSpan;
+            // расстояние до краёв вставки, в долях сектора; края сглажены на пиксель
+            float ea = min(ta - uMargin.x, 1.0 - uMargin.x - ta);
+            float er = min(tr - uMargin.y, 1.0 - uMargin.y - tr);
+            float inside = smoothstep(0.0, max(fwidth(ta), 1e-5) * 1.5, ea)
+                         * smoothstep(0.0, max(fwidth(tr), 1e-5) * 1.5, er);
+            gl_FragColor = vec4(uColor, uOpacity * mix(1.0, uDark, inside));
+          }`,
+        transparent: true, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending,
+      });
+    }
+
     // ------------------------------------------------------------ эклиптика и зодиак
     const eclGroup = new THREE.Group(); scene.add(eclGroup);      // наклон = наклон эклиптики
     const zodiacGroup = new THREE.Group(); eclGroup.add(zodiacGroup);
@@ -732,8 +769,8 @@
       zodiacGroup.add(segments(divs, '#bfeaff', 0.8));
       NS.ZODIAC.forEach((z, i) => {
         const col = NS.ELEMENT_COLOR[z.el];
-        const sector = new THREE.Mesh(new THREE.RingGeometry(Ri, R, 24, 1, i * 30 * DEG, 30 * DEG),
-          new THREE.MeshBasicMaterial({ color: C(col), transparent: true, opacity: 0.045, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
+        const sector = new THREE.Mesh(new THREE.RingGeometry(Ri, R, 48, 1, i * 30 * DEG, 30 * DEG),
+          zodiacFill(col, Ri, R, i * 30 * DEG, 30 * DEG));
         sector.rotation.x = -Math.PI / 2; zodiacGroup.add(sector);
         const l = makeLabel(z.glyph + '<small>' + z.name + '</small>', 'lbl-zodiac');
         l.el.style.color = col;
