@@ -535,6 +535,68 @@
     earthMesh.renderOrder = -1;
     earthGroup.add(earthMesh);
 
+    // Атмосфера: мягкий ореол по краю шара на той же касательной плоскости, что обводка Луны.
+    // Для каждой точки ободка восстанавливаем её нормаль в мире и считаем, как она освещена:
+    // день — голубое рассеяние, ночь — почти ничего, на границе — сумерки. Восход от заката
+    // отличаем по вращению Земли: точка, которая въезжает в свет, — утро, уходящая в тень — вечер.
+    // Закат глубже и краснее (к вечеру в воздухе больше пыли и дымки) и уходит в пурпур,
+    // восход светлее и прохладнее — розово-золотой. На просвет против Солнца ореол ярче.
+    const ATMO_HALF = 1.3;
+    const ATMO_VS = FACING_VS
+      .replace('varying vec2 vP;', 'varying vec2 vP; varying vec3 vView; varying vec3 vCenter;')
+      .replace('gl_Position = projectionMatrix * vec4(p, 1.0);',
+               'vView = p; vCenter = c; gl_Position = projectionMatrix * vec4(p, 1.0);');
+    const atmoMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uScale: { value: ATMO_HALF }, uSphereR: { value: 1.0 }, uLift: { value: 0.0 },
+        uR: { value: 1.0 / ATMO_HALF },          // край шара в координатах квадрата
+        uW: { value: 0.045 / ATMO_HALF },        // толщина ореола (экспоненциальный спад наружу)
+        sunDir: earthMat.uniforms.sunDir,         // общий с материалом Земли
+      },
+      vertexShader: ATMO_VS,
+      fragmentShader: `
+        precision highp float;
+        uniform float uR; uniform float uW; uniform vec3 sunDir;
+        varying vec2 vP; varying vec3 vView; varying vec3 vCenter;
+        void main() {
+          float rho = length(vP);
+          float x = (rho - uR) / uW;                         // 0 на краю шара, в толщинах ореола
+          if (x > 7.0) discard;
+          // профиль: быстрый подъём у самого края и мягкий экспоненциальный спад наружу
+          float prof = x < 0.0 ? exp(-x * x * 3.0) : exp(-x);
+          // нормаль точки ободка: от центра шара к точке на плоскости касания, в мир
+          vec3 nV = normalize(vView - vCenter);
+          mat3 invView = transpose(mat3(viewMatrix));
+          vec3 n = normalize(invView * nV);
+          vec3 sd = normalize(sunDir);
+          float mu = dot(n, sd);                             // высота Солнца над горизонтом этой точки
+          // утро или вечер: скорость точки при вращении Земли вокруг оси Y
+          // у полюсов скорость вращения мала — там утро и вечер плавно смешиваются, без шва
+          float morning = smoothstep(-0.18, 0.18, dot(cross(vec3(0.0, 1.0, 0.0), n), sd));
+          float day = smoothstep(-0.05, 0.35, mu);
+          float dusk = exp(-pow((mu + 0.04) / 0.13, 2.0));   // полоса сумерек у границы света
+          float tail = exp(-pow((mu + 0.16) / 0.10, 2.0));   // пурпурный хвост в сторону ночи
+          vec3 cDay     = vec3(0.16, 0.42, 1.00);
+          vec3 cNight   = vec3(0.010, 0.020, 0.060);
+          vec3 cSunset  = vec3(1.00, 0.30, 0.07);            // глубокий оранжево-красный
+          vec3 cSunrise = vec3(1.00, 0.62, 0.42);            // розово-золотой, светлее
+          vec3 cPurpleE = vec3(0.45, 0.10, 0.35);            // вечерний пурпур
+          vec3 cPurpleM = vec3(0.30, 0.16, 0.42);            // утренний, холоднее
+          vec3 col = mix(cNight, cDay, day);
+          col = mix(col, mix(cSunset, cSunrise, morning), clamp(dusk * 0.95, 0.0, 1.0));
+          col += mix(cPurpleE, cPurpleM, morning) * tail * 0.6;
+          // на просвет: смотрим сквозь край атмосферы в сторону Солнца
+          vec3 sunV = normalize(mat3(viewMatrix) * sd);
+          float g = max(dot(normalize(vView), sunV), 0.0);
+          float glow = 1.0 + 1.8 * pow(g, 6.0) * smoothstep(-0.2, 0.1, mu);
+          gl_FragColor = vec4(col * prof * glow * 0.85, 1.0);
+        }`,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    });
+    const atmosphere = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), atmoMat);
+    atmosphere.frustumCulled = false;
+    earthGroup.add(atmosphere);
+
     (function buildGraticule() {
       const arr = [];
       const R = 1.0012;
