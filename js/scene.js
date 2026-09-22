@@ -537,28 +537,39 @@
     earthGroup.add(earthMesh);
 
     // Атмосфера: мягкий ореол по краю шара на той же касательной плоскости, что обводка Луны.
-    // Для каждой точки ободка восстанавливаем её нормаль в мире и считаем, как она освещена:
-    // день — голубое рассеяние, ночь — почти ничего, на границе — сумерки. Восход от заката
-    // отличаем по вращению Земли: точка, которая въезжает в свет, — утро, уходящая в тень — вечер.
-    // Закат глубже и краснее (к вечеру в воздухе больше пыли и дымки) и уходит в пурпур,
-    // восход светлее и прохладнее — розово-золотой. На просвет против Солнца ореол ярче.
+    // Где закат и восход: проводим луч от камеры к Солнцу и находим, где он протыкает
+    // плоскость ободка. От этой точки тёплый цвет расходится по кругу с плавным спадом.
+    // Если Солнце далеко сбоку, точка уходит за пределы ободка и он остаётся голубым;
+    // если Солнце точно за Землёй, точка попадает в центр и кольцо светится целиком.
+    // Восход от заката отличаем по вращению Земли: точка, которая въезжает в свет, — утро.
     const ATMO_HALF = 1.3;
     const ATMO_VS = FACING_VS
-      .replace('varying vec2 vP;', 'varying vec2 vP; varying vec3 vView; varying vec3 vCenter;')
+      .replace('varying vec2 vP;',
+               'varying vec2 vP; varying vec3 vView; varying vec3 vCenter; varying vec3 vHot;\n      uniform vec3 uSunPos;')
       .replace('gl_Position = projectionMatrix * vec4(p, 1.0);',
-               'vView = p; vCenter = c; gl_Position = projectionMatrix * vec4(p, 1.0);');
+               `vView = p; vCenter = c;
+        // точка, где луч «камера → Солнце» пересекает плоскость ободка, в тех же координатах, что vP
+        vec3 sv = (viewMatrix * vec4(uSunPos, 1.0)).xyz;
+        float den = dot(sv, u);
+        vec3 hit = sv * (dt / max(den, 1e-4));
+        vec3 off = hit - u * dt;
+        float unit = max(uScale * k * s, 1e-5);
+        vHot = vec3(dot(off, right) / unit, dot(off, up) / unit, den > 1e-3 ? 1.0 : 0.0);
+        gl_Position = projectionMatrix * vec4(p, 1.0);`);
     const atmoMat = new THREE.ShaderMaterial({
       uniforms: {
         uScale: { value: ATMO_HALF }, uSphereR: { value: 1.0 }, uLift: { value: 0.0 },
         uR: { value: 1.0 / ATMO_HALF },          // край шара в координатах квадрата
-        uW: { value: 0.034 / ATMO_HALF },        // толщина ореола (экспоненциальный спад наружу), 75% от прежней
+        uW: { value: 0.034 / ATMO_HALF },        // толщина ореола (экспоненциальный спад наружу)
+        uHot: { value: 0.62 },                   // радиус тёплого пятна вокруг точки пересечения
+        uSunPos: { value: new THREE.Vector3(1, 0, 0) },   // положение Солнца в мире, ставится покадрово
         sunDir: earthMat.uniforms.sunDir,         // общий с материалом Земли
       },
       vertexShader: ATMO_VS,
       fragmentShader: `
         precision highp float;
-        uniform float uR; uniform float uW; uniform vec3 sunDir;
-        varying vec2 vP; varying vec3 vView; varying vec3 vCenter;
+        uniform float uR; uniform float uW; uniform float uHot; uniform vec3 sunDir;
+        varying vec2 vP; varying vec3 vView; varying vec3 vCenter; varying vec3 vHot;
         void main() {
           float rho = length(vP);
           float x = (rho - uR) / uW;                         // 0 на краю шара, в толщинах ореола
@@ -571,42 +582,27 @@
           vec3 n = normalize(invView * nV);
           vec3 sd = normalize(sunDir);
           float mu = dot(n, sd);                             // высота Солнца над горизонтом этой точки
-          // утро или вечер: скорость точки при вращении Земли вокруг оси Y
-          // у полюсов скорость вращения мала — там утро и вечер плавно смешиваются, без шва
+          // утро или вечер: скорость точки при вращении Земли вокруг оси Y;
+          // у полюсов вращение почти не чувствуется, там утро и вечер плавно смешиваются
           float morning = smoothstep(-0.18, 0.18, dot(cross(vec3(0.0, 1.0, 0.0), n), sd));
-          // Свечение сумерек: колокол с максимумом ровно на горизонте. Ниже горизонта
-          // воздух ещё освещён (высокие слои), выше — свет уже не краснеет и уходит в голубое.
-          // Резкая ступенька тут неверна: при Солнце за Землёй одна сторона ободка гасла целиком.
-          float tw = exp(-pow(mu / 0.17, 2.0));
+          // тёплое пятно вокруг точки, где луч на Солнце протыкает ободок
+          float dist = length(vP - vHot.xy);
+          float spot = vHot.z * exp(-pow(dist / uHot, 2.0));
           float blue = smoothstep(-0.05, 0.62, mu);          // дневное голубое рассеяние
-          float tail = exp(-pow((mu + 0.22) / 0.12, 2.0));   // пурпурный хвост глубже в ночь
           vec3 cDay     = vec3(0.09, 0.40, 0.70);            // дневная атмосфера: темнее и в бирюзу
           vec3 cNight   = vec3(0.010, 0.020, 0.060);
           vec3 cSunset  = vec3(1.00, 0.30, 0.07);            // глубокий оранжево-красный
           vec3 cSunrise = vec3(1.00, 0.62, 0.42);            // розово-золотой, светлее
           vec3 cPurpleE = vec3(0.45, 0.10, 0.35);            // вечерний пурпур
           vec3 cPurpleM = vec3(0.30, 0.16, 0.42);            // утренний, холоднее
-          vec3 warm = mix(cSunset, cSunrise, morning) * 0.7;   // приглушено, чтобы свечение не выбеливало оттенок
-          // Закатные цвета видны только на просвет — когда камера смотрит в сторону Солнца
-          // сквозь край атмосферы. Сбоку голубое рассеяние у границы ночи просто гаснет.
+          vec3 warm = mix(cSunset, cSunrise, morning) * 0.8;
+          vec3 col = cNight + cDay * blue * (1.0 - 0.7 * spot) + warm * spot;
+          // пурпурный хвост — по краям тёплого пятна, в сторону ночи
+          col += mix(cPurpleE, cPurpleM, morning) * spot * (1.0 - blue) * 0.5;
           vec3 sunV = normalize(mat3(viewMatrix) * sd);
           float g = max(dot(normalize(vView), sunV), 0.0);
-          float back = smoothstep(0.15, 0.8, g);
-          // тёплым бывает только участок ободка со стороны Солнца (по экрану), дальше по кругу —
-          // обычное голубое; если Солнце точно за Землёй, светится всё кольцо, как при затмении
-          vec2 sxy = sunV.xy; float sl = length(sxy);
-          float side = sl > 1e-4 ? dot(normalize(nV.xy), sxy / sl) : 1.0;
-          float near = mix(1.0, smoothstep(0.70, 0.987, side), smoothstep(0.08, 0.35, sl));
-          back *= near;
-          // Тёплый цвет даёт две причины, берём сильнейшую:
-          // 1) сумерки — Солнце у горизонта этой точки (верх и низ ободка, когда Солнце сбоку);
-          // 2) взгляд навстречу Солнцу сквозь касательную толщу воздуха — тогда краснеет
-          //    именно тот участок ободка, за который уходит Солнце, даже если там уже день.
-          float w = clamp(max(tw * back, pow(g, 4.0) * near), 0.0, 1.0);
-          vec3 col = cNight + cDay * blue * (1.0 - 0.65 * w) + warm * w;
-          col += mix(cPurpleE, cPurpleM, morning) * tail * 0.5 * back;
-          float glow = 1.0 + 1.1 * pow(g, 6.0) * min(1.0, tw + blue);
-          gl_FragColor = vec4(col * prof * glow * 0.64, 1.0);   // общая яркость 75% от прежней
+          float glow = 1.0 + 1.1 * pow(g, 6.0) * max(spot, blue);
+          gl_FragColor = vec4(col * prof * glow * 0.64, 1.0);   // общая яркость
         }`,
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     });
@@ -948,6 +944,8 @@
       eclGroup.rotation.x = ob;
       earthGroup.rotation.y = f.gst * 15 * DEG;
       earthMat.uniforms.sunDir.value.set(f.sunDir[0], f.sunDir[1], f.sunDir[2]);
+      // Солнце в мировых координатах: по нему атмосфера ищет точку заката на ободке
+      atmoMat.uniforms.uSunPos.value.set(f.sunDir[0], f.sunDir[1], f.sunDir[2]).multiplyScalar(NS.BODY.Sun.ring);
       sunLight.position.set(f.sunDir[0] * 30, f.sunDir[1] * 30, f.sunDir[2] * 30);
       subsolar.position.set(f.sunDir[0] * 1.02, f.sunDir[1] * 1.02, f.sunDir[2] * 1.02);
 
