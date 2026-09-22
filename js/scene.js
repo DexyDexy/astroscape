@@ -586,18 +586,24 @@
           vec3 cSunrise = vec3(1.00, 0.62, 0.42);            // розово-золотой, светлее
           vec3 cPurpleE = vec3(0.45, 0.10, 0.35);            // вечерний пурпур
           vec3 cPurpleM = vec3(0.30, 0.16, 0.42);            // утренний, холоднее
-          vec3 warm = mix(cSunset, cSunrise, morning);
+          vec3 warm = mix(cSunset, cSunrise, morning) * 0.7;   // приглушено, чтобы свечение не выбеливало оттенок
           // Закатные цвета видны только на просвет — когда камера смотрит в сторону Солнца
           // сквозь край атмосферы. Сбоку голубое рассеяние у границы ночи просто гаснет.
           vec3 sunV = normalize(mat3(viewMatrix) * sd);
           float g = max(dot(normalize(vView), sunV), 0.0);
           float back = smoothstep(0.15, 0.8, g);
+          // тёплым бывает только участок ободка со стороны Солнца (по экрану), дальше по кругу —
+          // обычное голубое; если Солнце точно за Землёй, светится всё кольцо, как при затмении
+          vec2 sxy = sunV.xy; float sl = length(sxy);
+          float side = sl > 1e-4 ? dot(normalize(nV.xy), sxy / sl) : 1.0;
+          float near = mix(1.0, smoothstep(0.35, 0.97, side), smoothstep(0.08, 0.35, sl));
+          back *= near;
           float w = pow(red, 1.6) * back;
           float blue = smoothstep(-0.10, 0.40, mu);          // голубое плавно сходит на нет к ночи
           vec3 col = cNight + cDay * blue * (1.0 - w) + warm * lit * w;
           col += mix(cPurpleE, cPurpleM, morning) * tail * 0.6 * back;
           // на просвет свет идёт сквозь всю толщу воздуха и краснеет (как Земля с Луны в затмение)
-          col = mix(col, warm * lit, clamp(pow(g, 3.0) * 0.75, 0.0, 1.0));
+          col = mix(col, warm * lit, clamp(pow(g, 3.0) * 0.75 * near, 0.0, 1.0));
           float glow = 1.0 + 1.1 * pow(g, 6.0) * lit;
           gl_FragColor = vec4(col * prof * glow * 0.85, 1.0);
         }`,
