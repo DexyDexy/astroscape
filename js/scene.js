@@ -554,7 +554,9 @@
         vec3 hit = sv * (dt / max(den, 1e-4));
         vec3 off = hit - u * dt;
         float unit = max(uScale * k * s, 1e-5);
-        vHot = vec3(dot(off, right) / unit, dot(off, up) / unit, den > 1e-3 ? 1.0 : 0.0);
+        // тёплое только когда Солнце дальше плоскости ободка: если оно между камерой
+        // и Землёй, мы смотрим со стороны Солнца и никакого заката на ободке нет
+        vHot = vec3(dot(off, right) / unit, dot(off, up) / unit, smoothstep(dt, dt + 0.3, den));
         gl_Position = projectionMatrix * vec4(p, 1.0);`);
     const atmoMat = new THREE.ShaderMaterial({
       uniforms: {
