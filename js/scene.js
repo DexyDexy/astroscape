@@ -189,7 +189,8 @@
       const s = new THREE.Sprite(m); s.scale.setScalar(scale); return s;
     }
     const pickables = [];
-    const SUN_DISC = '#f2b150';   // диск Солнца: тот же тёплый золотой, что у лучей
+    const SUN_DISC = '#f8d8a7';   // диск Солнца: тёплый золотой, осветлённый к белому
+    const SUN_RAYS = 0.35;        // размер венца лучей (76% от прежних 0.46)
     const labelTargets = [];   // подписи планет: pointer-events у них выключены, попадание считаем по прямоугольнику
     function labelAt(x, y) {
       for (const t of labelTargets) {
@@ -390,7 +391,7 @@
             float amp = AMP * smoothstep(0.0, 0.35, t);
             float ph = 2.0 * PI * (FREQ * t - uTime * SPD);           // бежит от основания к острию
             float c = base + amp * sin(ph);
-            float w = WID * pow(max(1.0 - t, 0.0), 0.8) * mix(1.0, 0.82, odd);
+            float w = WID * pow(max(1.0 - t, 0.0), 0.8);        // основания короткие и длинные одинаковой ширины
             float d = a - c;
             d = atan(sin(d), cos(d));
             float e = max(0.3 * w, 0.004);
@@ -596,10 +597,10 @@
           // обычное голубое; если Солнце точно за Землёй, светится всё кольцо, как при затмении
           vec2 sxy = sunV.xy; float sl = length(sxy);
           float side = sl > 1e-4 ? dot(normalize(nV.xy), sxy / sl) : 1.0;
-          float near = mix(1.0, smoothstep(0.35, 0.97, side), smoothstep(0.08, 0.35, sl));
+          float near = mix(1.0, smoothstep(0.70, 0.987, side), smoothstep(0.08, 0.35, sl));   // радиус тепла у Солнца 0.66 прежнего
           back *= near;
           float w = pow(red, 1.6) * back;
-          float blue = smoothstep(-0.10, 0.40, mu);          // голубое плавно сходит на нет к ночи
+          float blue = smoothstep(-0.40, 0.75, mu);          // голубое сходит на нет к ночи мягко, широкой растяжкой
           vec3 col = cNight + cDay * blue * (1.0 - w) + warm * lit * w;
           col += mix(cPurpleE, cPurpleM, morning) * tail * 0.6 * back;
           // на просвет свет идёт сквозь всю толщу воздуха и краснеет (как Земля с Луны в затмение)
@@ -757,7 +758,7 @@
       const halo = facingGlow(TEX_GLOW, b.color, haloS, isSun ? 0.95 : 0.7, b.size);
       const pick = pickProxy(haloS);
       g.add(halo, pick);
-      if (isSun) g.add(sunRays(0.46, 0.85, b.size));
+      if (isSun) g.add(sunRays(SUN_RAYS, 0.85, b.size));
       let outline = null;
       if (isMoon) { outline = bodyOutline(b.size, '#c3d6e6'); g.add(outline); }
       pickables.push({ obj: pick, id: b.id });
@@ -773,7 +774,7 @@
       // радиус, от которого отсчитывается вынос подписи вниз, и зазор в пикселях.
       // У Солнца это кончики лучей, а зазор отрицательный: кончики заходят под плашку.
       S.geo[b.id] = { g, mesh, halo, label, stem, tick, spoke, outline, orbitRing, text: '',
-        labelR: isSun ? 0.46 * 0.65 : b.size * Math.max(1.5, b.rings ? b.rings.outer * 0.75 : 0),
+        labelR: isSun ? SUN_RAYS * 0.65 : b.size * Math.max(1.5, b.rings ? b.rings.outer * 0.75 : 0),
         labelRel: isSun ? 0.91 : 1, labelGap: isSun ? 0 : 5, labelY: null };
     });
 

@@ -10,7 +10,7 @@ window.AstroScape = window.AstroScape || {};
     { id: 'Moon',    glyph: '☽', color: '#e8eef5', ring: 1.55, size: 0.085, helio: false },
     { id: 'Mercury', glyph: '☿', color: '#b8c4cc', ring: 1.85, size: 0.045, helio: true,  period: 88 },
     { id: 'Venus',   glyph: '♀', color: '#f3d9a0', ring: 2.12, size: 0.06,  helio: true,  period: 225 },
-    { id: 'Sun',     glyph: '☉', color: '#ffd36b', ring: 2.40, size: 0.11,  helio: false },
+    { id: 'Sun',     glyph: '☉', color: '#ffd36b', ring: 2.40, size: 0.0836, helio: false },   // 76% от прежнего
     { id: 'Mars',    glyph: '♂', color: '#ff7a59', ring: 2.68, size: 0.05,  helio: true,  period: 687 },
     { id: 'Jupiter', glyph: '♃', color: '#f0b980', ring: 2.96, size: 0.09,  helio: true,  period: 4333,
       pole: [268.057, 64.495], rings: { inner: 1.40, outer: 1.81, opacity: 0.22, style: 'faint' } },
