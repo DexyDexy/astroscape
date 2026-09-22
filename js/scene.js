@@ -587,11 +587,15 @@
           vec3 cPurpleE = vec3(0.45, 0.10, 0.35);            // вечерний пурпур
           vec3 cPurpleM = vec3(0.30, 0.16, 0.42);            // утренний, холоднее
           vec3 warm = mix(cSunset, cSunrise, morning);
-          vec3 col = cNight + mix(cDay, warm, pow(red, 1.6)) * lit;
-          col += mix(cPurpleE, cPurpleM, morning) * tail * 0.6;
-          // на просвет: смотрим сквозь край атмосферы в сторону Солнца
+          // Закатные цвета видны только на просвет — когда камера смотрит в сторону Солнца
+          // сквозь край атмосферы. Сбоку голубое рассеяние у границы ночи просто гаснет.
           vec3 sunV = normalize(mat3(viewMatrix) * sd);
           float g = max(dot(normalize(vView), sunV), 0.0);
+          float back = smoothstep(0.15, 0.8, g);
+          float w = pow(red, 1.6) * back;
+          float blue = smoothstep(-0.10, 0.40, mu);          // голубое плавно сходит на нет к ночи
+          vec3 col = cNight + cDay * blue * (1.0 - w) + warm * lit * w;
+          col += mix(cPurpleE, cPurpleM, morning) * tail * 0.6 * back;
           // на просвет свет идёт сквозь всю толщу воздуха и краснеет (как Земля с Луны в затмение)
           col = mix(col, warm * lit, clamp(pow(g, 3.0) * 0.75, 0.0, 1.0));
           float glow = 1.0 + 1.1 * pow(g, 6.0) * lit;
