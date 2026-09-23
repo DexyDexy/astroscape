@@ -183,6 +183,9 @@
   function renderDetail() {
     if (!state.selected) { UI.renderDetail(null); return; }
     const full = Astro.bodyState(state.selected, state.date, obsObj, true);
+    // дом и достоинство считаются в общем проходе, переносим их в карточку
+    const cur = states && states[state.selected];
+    if (cur) { full.house = cur.house; full.dignity = cur.dignity; }
     UI.renderDetail(state.selected, full, riseSets[state.selected], state.date);
   }
 
