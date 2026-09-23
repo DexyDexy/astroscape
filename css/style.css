@@ -181,6 +181,13 @@ body {
 #panel-situation .kv > div b { white-space: normal; min-width: 0; }
 #sit-hour small { margin-left: 5px; opacity: .65; font-size: 10.5px; }
 
+/* толкование */
+.reading-lead { font-size: 11.5px; letter-spacing: .04em; color: var(--cyan); margin-bottom: 6px; }
+.reading-list li { display: block; padding: 6px 0; font-size: 12px; line-height: 1.5; color: var(--text); border-bottom: 1px dotted rgba(127,215,255,.12); }
+.reading-list li:last-child { border-bottom: 0; }
+#reading-note { margin: 8px 0 0; font-size: 10.5px; line-height: 1.4; color: var(--muted); }
+#panel-reading .body { max-height: 46vh; overflow-y: auto; }
+
 /* колонка дома и метка достоинства планеты */
 table.planets td.hs { white-space: nowrap; font-family: var(--font-mono); font-size: 10.5px; }
 table.planets td.hs .hn { color: var(--text); opacity: .85; }

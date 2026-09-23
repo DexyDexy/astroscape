@@ -268,5 +268,16 @@
     setText('situation-hint', ph ? t(ph.isDay ? 'dayChart' : 'nightChart') : '');
   }
 
-  NS.UI = { renderSituation, renderClock, buildRows, renderPlanets, renderDetail, renderMoon, renderSun, renderRetro, renderAspects, renderEclipses, initPanels, toast, fillPresets, drawMoon };
+  // ---------- толкование обстановки ----------
+  function renderReading(r) {
+    const list = $('reading-list');
+    if (!r) { setHTMLel($('reading-lead'), '—'); list.innerHTML = ''; return; }
+    setText('reading-lead', r.lead);
+    const html = r.items.map(f => '<li>' + f.text + '</li>').join('');
+    setHTMLel(list, html);
+    setText('reading-note', r.note);
+    setText('reading-hint', r.items.length ? r.items.length + '' : '');
+  }
+
+  NS.UI = { renderReading, time: fmt.time, renderSituation, renderClock, buildRows, renderPlanets, renderDetail, renderMoon, renderSun, renderRetro, renderAspects, renderEclipses, initPanels, toast, fillPresets, drawMoon };
 })(window.AstroScape);

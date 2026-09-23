@@ -167,8 +167,17 @@
     UI.renderRetro(heavy.retro, d);
     UI.renderEclipses(heavy.eclipses, d);
     UI.renderSituation(houses, phour, d);
+    renderReading();
     UI.renderPlanets(states, riseSets, state.selected);
     renderDetail();
+  }
+  // Толкование: собирается движком из уже посчитанных положений
+  function renderReading() {
+    if (!states || !NS.Interp) return;
+    UI.renderReading(NS.Interp.build({
+      date: state.date, states, aspects, houses, hour: phour,
+      moon: heavy && heavy.moon, fmtTime: UI.time,
+    }));
   }
   function renderDetail() {
     if (!state.selected) { UI.renderDetail(null); return; }
@@ -225,6 +234,7 @@
       UI.renderPlanets(states, riseSets, state.selected);
       UI.renderAspects(aspects);
       UI.renderSituation(houses, phour, state.date);
+      renderReading();
       if (heavy && (state.playing && state.speed > 60 || state.selected)) renderHeavyFast();
     }
     UI.renderClock(state.date, state.observer, state.live);
@@ -337,7 +347,7 @@
   }, 9000);
 
   // ---------- запуск ----------
-  NS.VERSION = '1.1.0';
+  NS.VERSION = '1.2.0';
   NS.boot = function (libs) {
     try { bootInner(libs); } catch (e) { showBootError((e && e.message) || e); throw e; }
   };
