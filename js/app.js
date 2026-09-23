@@ -177,6 +177,7 @@
     UI.renderReading(NS.Interp.build({
       date: state.date, states, aspects, houses, hour: phour,
       moon: heavy && heavy.moon, retro: heavy && heavy.retro,
+      withQuotes: !!(scene && scene.options.tradition),
       eclipses: heavy && heavy.eclipses, fmtTime: UI.time,
     }));
   }
@@ -351,7 +352,7 @@
   }, 9000);
 
   // ---------- запуск ----------
-  NS.VERSION = '1.4.0';
+  NS.VERSION = '1.5.0';
   NS.boot = function (libs) {
     try { bootInner(libs); } catch (e) { showBootError((e && e.message) || e); throw e; }
   };
@@ -435,7 +436,10 @@
     document.body.classList.toggle('ui-open', open);
     $('btn-ui').setAttribute('aria-expanded', open ? 'true' : 'false');
   }
-  function toggleOption(k) { scene.setOption(k, !scene.options[k]); save(); syncToolbar(); }
+  function toggleOption(k) {
+    scene.setOption(k, !scene.options[k]); save(); syncToolbar();
+    if (k === 'tradition') renderReading();      // выдержки появляются и исчезают вместе со слоем
+  }
   function toggleMode() { setMode(state.mode === 'helio' ? 'geo' : 'helio'); }
 
   function bind() {

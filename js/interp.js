@@ -23,6 +23,16 @@
     return String(tpl).replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? vars[k] : m));
   }
   function planetName(id) { return (NS.BODY[id] && NS.BODY[id].name) || id; }
+  // Историческая выдержка к строке о знаке светила: включается кнопкой «Традиция».
+  // Текст показывается в оригинале и с указанием источника — это документ эпохи,
+  // а не наше толкование, поэтому мы его не переводим и не переписываем.
+  function quoteFor(ctx, body, signIdx) {
+    if (!ctx.withQuotes || !NS.QUOTES) return null;
+    const text = NS.QUOTES[body] && NS.QUOTES[body][signIdx];
+    if (!text) return null;
+    const s = NS.QUOTES.source;
+    return { text, source: s.author + ', ' + s.title + ', ' + s.year, url: s.url };
+  }
   // достоинство светила дописывается к строке о его знаке, отдельной строкой не идёт
   function withDignity(T, text, s) {
     if (!s || !s.dignity) return text;
@@ -98,7 +108,7 @@
   function facts(ctx) {
     const T = L(), out = [];
     const st = ctx.states, h = ctx.houses;
-    const add = (key, weight, text) => { if (text) out.push({ key, weight, text }); };
+    const add = (key, weight, text, quote) => { if (text) out.push({ key, weight, text, quote }); };
     const kwP = id => T.planet[id] || '';
     const kwS = i => T.sign[i] || '';
     const kwH = n => T.house[n] || '';
@@ -110,7 +120,8 @@
     }
     if (moon) {
       add('moon.sign', 2.2, withDignity(T,
-        fill(T.tpl.moonSign, { sign: signName(moon.signIdx), signKw: kwS(moon.signIdx) }), moon));
+        fill(T.tpl.moonSign, { sign: signName(moon.signIdx), signKw: kwS(moon.signIdx) }), moon),
+        quoteFor(ctx, 'moon', moon.signIdx));
       if (moon.house) add('moon.house', 1.6, fill(T.tpl.moonHouse, { house: moon.house, houseKw: kwH(moon.house) }));
     }
     const vm = ctx.void;
@@ -120,7 +131,8 @@
     const sun = st.Sun;
     if (sun) {
       add('sun.sign', 2.0, withDignity(T,
-        fill(T.tpl.sunSign, { sign: signName(sun.signIdx), signKw: kwS(sun.signIdx) }), sun));
+        fill(T.tpl.sunSign, { sign: signName(sun.signIdx), signKw: kwS(sun.signIdx) }), sun),
+        quoteFor(ctx, 'sun', sun.signIdx));
       if (sun.house) add('sun.house', 1.7, fill(T.tpl.sunHouse, { house: sun.house, houseKw: kwH(sun.house) }));
     }
 

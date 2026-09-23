@@ -275,12 +275,19 @@
     setText('situation-hint', ph ? t(ph.isDay ? 'dayChart' : 'nightChart') : '');
   }
 
+  function quoteHTML(q) {
+    const src = q.url
+      ? '<a href="' + q.url + '" target="_blank" rel="noopener">' + q.source + '</a>'
+      : q.source;
+    return '<span class="qt">« ' + q.text + ' »<span class="qt-src">' + src + '</span></span>';
+  }
+
   // ---------- толкование обстановки ----------
   function renderReading(r) {
     const list = $('reading-list');
     if (!r) { setHTMLel($('reading-lead'), '—'); list.innerHTML = ''; return; }
     setText('reading-lead', r.lead);
-    const html = r.items.map(f => '<li>' + f.text + '</li>').join('');
+    const html = r.items.map(f => '<li>' + f.text + (f.quote ? quoteHTML(f.quote) : '') + '</li>').join('');
     setHTMLel(list, html);
     setText('reading-hint', r.items.length ? r.items.length + '' : '');
   }
