@@ -26,12 +26,15 @@
   // Историческая выдержка к строке о знаке светила: включается кнопкой «Традиция».
   // Текст показывается в оригинале и с указанием источника — это документ эпохи,
   // а не наше толкование, поэтому мы его не переводим и не переписываем.
-  function quoteFor(ctx, body, signIdx) {
-    if (!ctx.withQuotes || !NS.QUOTES) return null;
-    const text = NS.QUOTES[body] && NS.QUOTES[body][signIdx];
-    if (!text) return null;
-    const s = NS.QUOTES.source;
-    return { text, source: s.author + ', ' + s.title + ', ' + s.year, url: s.url };
+  function quote(bodyId, signIdx) {
+    if (!NS.QUOTES || !NS.QUOTES.body) return null;
+    const rec = NS.QUOTES.body[bodyId] && NS.QUOTES.body[bodyId][signIdx];
+    if (!rec) return null;
+    const src = NS.QUOTES.sources[rec.s] || {};
+    return { text: rec.t, source: src.label || '', url: src.url || '' };
+  }
+  function quoteFor(ctx, bodyId, signIdx) {
+    return ctx.withQuotes ? quote(bodyId, signIdx) : null;
   }
   // достоинство светила дописывается к строке о его знаке, отдельной строкой не идёт
   function withDignity(T, text, s) {
@@ -121,7 +124,7 @@
     if (moon) {
       add('moon.sign', 2.2, withDignity(T,
         fill(T.tpl.moonSign, { sign: signName(moon.signIdx), signKw: kwS(moon.signIdx) }), moon),
-        quoteFor(ctx, 'moon', moon.signIdx));
+        quoteFor(ctx, 'Moon', moon.signIdx));
       if (moon.house) add('moon.house', 1.6, fill(T.tpl.moonHouse, { house: moon.house, houseKw: kwH(moon.house) }));
     }
     const vm = ctx.void;
@@ -132,7 +135,7 @@
     if (sun) {
       add('sun.sign', 2.0, withDignity(T,
         fill(T.tpl.sunSign, { sign: signName(sun.signIdx), signKw: kwS(sun.signIdx) }), sun),
-        quoteFor(ctx, 'sun', sun.signIdx));
+        quoteFor(ctx, 'Sun', sun.signIdx));
       if (sun.house) add('sun.house', 1.7, fill(T.tpl.sunHouse, { house: sun.house, houseKw: kwH(sun.house) }));
     }
 
@@ -265,5 +268,5 @@
     return { lead, items, note: T.note };
   }
 
-  NS.Interp = { build, voidMoon, moonNext };
+  NS.Interp = { build, voidMoon, moonNext, quote };
 })(window.AstroScape);

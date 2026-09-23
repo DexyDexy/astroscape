@@ -97,7 +97,7 @@
   }
   function setHTMLel(el, html) { if (el.innerHTML !== html) el.innerHTML = html; }
 
-  function renderDetail(id, s, rs) {
+  function renderDetail(id, s, rs, date, quote) {
     const box = $('planet-detail');
     if (!id || !s) { box.classList.remove('show'); box.innerHTML = ''; return; }
     const b = NS.BODY[id], u = U();
@@ -120,7 +120,7 @@
     rows.push([t('raDec'), fmt.hms(s.ra) + ' / ' + fmt.deg(s.dec)]);
     rows.push([t('eclLat'), fmt.deg(s.lat, 2)]);
     if (rs) rows.push([t('riseSetDot'), fmt.time(rs.rise) + ' · ' + fmt.time(rs.set)]);
-    box.innerHTML = '<h3 style="color:' + b.color + '">' + b.glyph + ' ' + b.name + '</h3><div class="kv">' + rows.map(r => '<div><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('') + '</div>';
+    box.innerHTML = '<h3 style="color:' + b.color + '">' + b.glyph + ' ' + b.name + '</h3><div class="kv">' + rows.map(r => '<div><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('') + '</div>' + (quote ? quoteHTML(quote) : '');
     box.classList.add('show');
   }
 

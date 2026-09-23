@@ -1,40 +1,124 @@
-/* AstroScape — исторические выдержки.
-   Источник: Alan Leo, "Astrology for All", L. N. Fowler & Co., London, 1899.
-   Общественное достояние (автор умер в 1917 году, издание 1899 года).
-   Текст взят дословно из скана archive.org (astrologyforall00leogoog),
-   исправлены только переносы и типографские огрехи распознавания.
-   Показывается в оригинале: это исторический документ, а не наше толкование. */
+/* AstroScape — исторические выдержки о планетах в знаках.
+   Источники, оба в общественном достоянии:
+     Alan Leo, "Astrology for All", London, 1899 — Солнце и Луна;
+     Max Heindel, "The Message of the Stars", 1918 — остальные планеты.
+   Текст взят дословно из сканов archive.org, исправлены только переносы и
+   огрехи распознавания; каждая выдержка сверена с исходником по буквам.
+   Показывается в оригинале: это документ эпохи, а не наше толкование. */
 (function (NS) {
   'use strict';
   NS.QUOTES = {
-    source: { author: "Alan Leo", title: "Astrology for All", year: 1899, url: "https://archive.org/details/astrologyforall00leogoog" },
-    sun: {
-      0: "the primary characteristics of the Sun in this sign are force and energy, and the fundamental basis of the character will consist of an ambitious, aspiring, enthusiastic nature",
-      1: "The Sun in Taurus will make the individual character behind each lunar expression more firm, plodding, enduring and determined, but there will be a tendency to move slower and act more cautiously, quietly and practically than when the Sun was in Aries.",
-      2: "The Sun in Gemini as the motive force behind the lunar expressions will give a dualistic, restless and irritable tendency, with the desires always running on intellectual lines.",
-      3: "This is not a strong position for the individuality, therefore the personal characteristics may pull considerably away from the higher qualities.",
-      4: "The Sun in Leo gives a good moral nature; it makes the individuality very sincere and ardent in all matters of affection, firm, self-reliant, sincere, magnanimous, noble-minded, austere, and determined.",
-      5: "This gives a practical individuality and a discriminative nature. It tends to lead the whole of the lunar expressions more into practical methods, where the discriminative faculties can be called out as fully as possible.",
-      6: "This gives a very harmonious individuality, with a tendency to act through perception more than through reflection.",
-      7: "The Sun in the sign Scorpio gives a very firm, determined, and reserved individuality, with inclination to be very dignified, secretive, and full of desire.",
-      8: "The Sun in the sign Sagittarius inclines the individual towards science, philosophy and religion.",
-      9: "There is much self-reliance and determination expressed through this sign, which considerably strengthens the various personalities attached to it.",
-      10: "The Sun in Aquarius gives a very refined individuality, loving everything of a humanitarian nature, very faithful, sincere, humane and just, with very broad sympathies and a desire to embrace the whole of humanity.",
-      11: "The Sun in the sign Pisces tends to make the individual nature emotional and receptive, meditative and imitative.",
+    sources: {
+      leo: { label: "Alan Leo, Astrology for All, 1899", url: "https://archive.org/details/astrologyforall00leogoog" },
+      heindel: { label: "Max Heindel, The Message of the Stars, 1918", url: "https://archive.org/details/messageofstarses00heiniala" },
     },
-    moon: {
-      0: "This makes the person an enthusiast in some direction; impulsive, aggressive and militant in manner, sometimes irritable and liable to fits of anger.",
-      1: "The personality is quiet and unimpulsive; persistent, determined, and not to be thwarted in his aims.",
-      2: "This lunar position strengthens the intellect, and makes the native a lover of books, of study, of scientific and literary pursuits.",
-      3: "This indicates a personality fond of ease and comfort, homely in his habits, and attached to his family.",
-      4: "This lunar position tends to uplift the native, to put him in positions of responsibility or prominence, and to give him authority over others as head, or manager, or director.",
-      5: "The native has good intellectual powers and is capable of following some intellectual pursuit.",
-      6: "This position favours general popularity. It gives fondness for music, poetry, and the fine arts generally, and much ability in this direction.",
-      7: "This lunar position makes the native very firm and determined, self-reliant, and assured, and well able to stand alone and fight his own battles.",
-      8: "This position gives a quick, restless and unsettled manner, either to the body or mind.",
-      9: "This tends to bring the native before the public for good or evil, popularity or notoriety, hough it usually has some drawback attaching to it.",
-      10: "This lunar position gives some inclination for astrology, fortune telling, dreaming, visions, mediumship, mysticism, and the occult generally.",
-      11: "The native is quiet, retiring, and easy-going, is restless and fond of variety, easily changes his mind, is irresolute and not always to be depended upon, is ratber easily discouraged, and meets with obstacles, misfortune and opposition in life.",
+    body: {
+      Sun: {
+        0: { t: "the primary characteristics of the Sun in this sign are force and energy, and the fundamental basis of the character will consist of an ambitious, aspiring, enthusiastic nature", s: "leo" },
+        2: { t: "The Sun in Gemini as the motive force behind the lunar expressions will give a dualistic, restless and irritable tendency, with the desires always running on intellectual lines.", s: "leo" },
+        3: { t: "This is not a strong position for the individuality, therefore the personal characteristics may pull considerably away from the higher qualities.", s: "leo" },
+        4: { t: "The Sun in Leo gives a good moral nature; it makes the individuality very sincere and ardent in all matters of affection, firm, self-reliant, sincere, magnanimous, noble-minded, austere, and determined.", s: "leo" },
+        5: { t: "This gives a practical individuality and a discriminative nature. It tends to lead the whole of the lunar expressions more into practical methods, where the discriminative faculties can be called out as fully as possible.", s: "leo" },
+        6: { t: "This gives a very harmonious individuality, with a tendency to act through perception more than through reflection.", s: "leo" },
+        7: { t: "The Sun in the sign Scorpio gives a very firm, determined, and reserved individuality, with inclination to be very dignified, secretive, and full of desire.", s: "leo" },
+        8: { t: "The Sun in the sign Sagittarius inclines the individual towards science, philosophy and religion.", s: "leo" },
+        9: { t: "There is much self-reliance and determination expressed through this sign, which considerably strengthens the various personalities attached to it.", s: "leo" },
+        10: { t: "The Sun in Aquarius gives a very refined individuality, loving everything of a humanitarian nature, very faithful, sincere, humane and just, with very broad sympathies and a desire to embrace the whole of humanity.", s: "leo" },
+        11: { t: "The Sun in the sign Pisces tends to make the individual nature emotional and receptive, meditative and imitative.", s: "leo" },
+      },
+      Moon: {
+        0: { t: "This makes the person an enthusiast in some direction; impulsive, aggressive and militant in manner, sometimes irritable and liable to fits of anger.", s: "leo" },
+        1: { t: "The personality is quiet and unimpulsive; persistent, determined, and not to be thwarted in his aims.", s: "leo" },
+        2: { t: "This lunar position strengthens the intellect, and makes the native a lover of books, of study, of scientific and literary pursuits.", s: "leo" },
+        3: { t: "This indicates a personality fond of ease and comfort, homely in his habits, and attached to his family.", s: "leo" },
+        4: { t: "This lunar position tends to uplift the native, to put him in positions of responsibility or prominence, and to give him authority over others as head, or manager, or director.", s: "leo" },
+        5: { t: "The native has good intellectual powers and is capable of following some intellectual pursuit.", s: "leo" },
+        6: { t: "This position favours general popularity. It gives fondness for music, poetry, and the fine arts generally, and much ability in this direction.", s: "leo" },
+        7: { t: "This lunar position makes the native very firm and determined, self-reliant, and assured, and well able to stand alone and fight his own battles.", s: "leo" },
+        8: { t: "This position gives a quick, restless and unsettled manner, either to the body or mind.", s: "leo" },
+        9: { t: "This tends to bring the native before the public for good or evil, popularity or notoriety, hough it usually has some drawback attaching to it.", s: "leo" },
+        10: { t: "This lunar position gives some inclination for astrology, fortune telling, dreaming, visions, mediumship, mysticism, and the occult generally.", s: "leo" },
+        11: { t: "The native is quiet, retiring, and easy-going, is restless and fond of variety, easily changes his mind, is irresolute and not always to be depended upon, is ratber easily discouraged, and meets with obstacles, misfortune and opposition in life.", s: "leo" },
+      },
+      Mercury: {
+        0: { t: "Mercury in Aries makes the person very argumentative, fond of disputes, quick at repartee, with a tendency to exaggerate though not necessarily by design.", s: "heindel" },
+        1: { t: "Mercury in Taurus gives a mind that is not very soon made up but when it has once arrived at a conclusion it is almost as difficult to change as the laws of the Medes and Persians.", s: "heindel" },
+        2: { t: "Mercury in Gemini makes a person fond of change and travel. He is always ready to investigate some new thing, or go to some other place for a change.", s: "heindel" },
+        3: { t: "Mercury in Cancer gives a clear intellect, a good memory and superlative adaptability, so that they can fit into any place or occupation they may find and also adapt themselves to the opinions and ideas of others.", s: "heindel" },
+        4: { t: "Mercury in Leo gives a positive, strong and persevering intellect with high ideals and aspirations which scorns to stoop to low and mean acts, despises equivocation, blunt and outspoken, quick-tempered, but kind-hearted and sympathetic.", s: "heindel" },
+        5: { t: "Mercury in Virgo is at the zenith of his power for there he is exalted, consequently when wellaspected it gives a clear, logical, scientific mind, eloquence and the ability to express oneself fluently in a number of languages.", s: "heindel" },
+        6: { t: "Mercury in Libra, when well-aspected gives a broad, well-balanced mind with a love of art and music and an uncommon ability of expression.", s: "heindel" },
+        7: { t: "Mercury in Scorpio gives a shrewd mind, a keen aspiration, a quick wit and a sharp tongue with biting sarcasm that can sting like the scorpion.", s: "heindel" },
+        9: { t: "Mercury in Capricorn gives a critical and penetrating but somewhat suspicious mind with a thoughtful and diplomatic disposition.", s: "heindel" },
+        11: { t: "Mercury in Pisces the occult watery sign, seems to endow the mind with a certain psychic faculty which is not so much intuition as imagination.", s: "heindel" },
+      },
+      Venus: {
+        0: { t: "enus in Aries lends ardor to the affections of Venus by blending them with the fire of Mars who is ruler of Aries and for that reason it makes the person very ardent in the expression of affection.", s: "heindel" },
+        1: { t: "enus in Taurus are very set in their opinions concerning correct form and decorum, correct in speech and once they have formed an opinion they hold to it very tenaciously.", s: "heindel" },
+        2: { t: "enus in Gemini blends the beauty of Venus with the mercurial ability to express so that people who have this configuration are able to choose their words with singular facility and infuse in them a rhythm which is like music to the ears of a listener.", s: "heindel" },
+        3: { t: "enus in Cancer blends the characteristics of Venus with those of the Moon and the psychic watery nature of Cancer.", s: "heindel" },
+        4: { t: "enus in Leo is compounding love, for Leo rules the heart and whoever has this position will be tender-hearted to a degree.", s: "heindel" },
+        5: { t: "enus in Virgo, the Sixth House sign gives the person a deep and tender sympathy for the sick and people with this position make good nurses.", s: "heindel" },
+        6: { t: "enus in Libra, the Seventh House sign is essentially dignified and strong. This is one of the configurations which testify to a fruitful and congenial marriage or successful partnership.", s: "heindel" },
+        8: { t: "enus in Sagittarius. This is another of her strongest positions for there her qualities blend with those of Jupiter the planet of benevolence to foster love and good-will among men.", s: "heindel" },
+        9: { t: "enus in Capricorn, the Tenth House sign, gives social success and popularity, but Venus does not blend well with Saturn, the ruler of Capricorn.", s: "heindel" },
+        11: { t: "enus in Pisces are especially liable cial imposition on the part of others an through an illegal marriage.", s: "heindel" },
+      },
+      Mars: {
+        0: { t: "Mars in Aries gives an energetic, enthusiastic nature, impulsive, aggressive and impatient of restraint.", s: "heindel" },
+        2: { t: "Mars in Gemini when well-aspected gives a keen, active and alert mentality. People with Mars in this position never beat about the bush.", s: "heindel" },
+        4: { t: "Mars in Leo gives the same daring as when well-aspected but the danger of accident is greater because the person with the afflicted planets becomes foolhardy and reckless.", s: "heindel" },
+        5: { t: "Mars in Virgo when well-aspected gives an ambitious nature and a quick intellect, able to gra.sp an idea and elaborate upon it.", s: "heindel" },
+        6: { t: "Mars in Libra always produces a strong attraction toward the opposite sex and if he is afflicted there the nature is amorous and fickle with the natural result that trouble arises by playing with the affections of others.", s: "heindel" },
+        8: { t: "Mars in Sagittarius and well-aspected gives an argumentative disposition and fondness of debating on subjects of a serious nature such as law, philosophy and religion.", s: "heindel" },
+        9: { t: "Mars in Capricorn. It also gives a liability to accidents affecting the limbs and its reflex action on the part of the body ruled by the opposite sign, viz., the stomach, gives a tendency to gastric troubles.", s: "heindel" },
+        10: { t: "Mars in Aquarius also gives a tendency to trouble with the eyes because Aquarius governs the ethers and by reflex action the opposite sign Leo may cause palpitation of the heart.", s: "heindel" },
+      },
+      Jupiter: {
+        1: { t: "Jupiter in Taurus when well-aspected gives an eminently kind and sympathetic nature to all people but a deep-seated, tender and warm love for those towards whom the relationship warrants such expression.", s: "heindel" },
+        2: { t: "Jupiter in Gemini when well-aspected gives literary ability of a high class and if that is backed by the necessary education success in this line is certain.", s: "heindel" },
+        3: { t: "Jupiter in Cancer makes the person very fond of the pleasures of the table but if well-aspected he will probably keep himself within such bounds that his health does not sulfer.", s: "heindel" },
+        4: { t: "Jupiter in Leo gives a truly noble nature, blending kindness and courage, self-reliance and loyalty, self-restraint and compassion, mercy and justice.", s: "heindel" },
+        5: { t: "Jupiter in Virgo gives a cautious, analytical and practical nature with an almost unerring faculty for discriminating between the seeming and the real, to sift truth from error and arrive at facts.", s: "heindel" },
+        6: { t: "Jupiter in Libra when well-aspected gives a. kind, sympathetic and loving disposition, a conscientious, sociable and benevolent nature and an interest in all that makes for the uplift of humanity, music, art, literature, social intercourse, et cetera.", s: "heindel" },
+        8: { t: "Jupiter in Sagittarius when well-aspected gives good fortune and general success in life, a humane, broad and philosophical mind, a reverent and religious disposition.", s: "heindel" },
+        9: { t: "Jupiter in Capricorn gives an ambitious nature, self-reliant and self -controlled with a desire to rise to a position of authority over others also the ability to dictate wisely and well.", s: "heindel" },
+        11: { t: "Jupiter in Pisces gives a charitable, sympathetic and hospitable nature which loves to minister to the outcasts of society.", s: "heindel" },
+      },
+      Saturn: {
+        0: { t: "Saturn in Aries is weak and therefore unable to express his best qualities to their full and legitimate extent even if well-aspected.", s: "heindel" },
+        1: { t: "Saturn in Taurus when well-aspected makes a person slow of speech but what he says will have weight and be well worth hearing.", s: "heindel" },
+        2: { t: "Saturn in Gemini when well-aspected gives a deep, one-pointed, orderly and scientific mind, adaptable to circumstances and able to cope with all the exigencies of life.", s: "heindel" },
+        3: { t: "Saturn in Cancer is always weak and his virtues therefore find it difficult to express themselves when he is in this position.", s: "heindel" },
+        5: { t: "Saturn in Virgo gives a studious, deep, scientific mind fond of studying the deeper problems of life.", s: "heindel" },
+        6: { t: "Saturn in Libra is exalted and very strong and therefore his good aspects bring out all the fine saturnine qualities and on that account secures for the person public esteem and recognition.", s: "heindel" },
+        8: { t: "Saturn in Sagittarius when well-aspected gives a charitable and philanthropic disposition with a desire to elevate humanity by self-help under just laws and true religious impulse.", s: "heindel" },
+        9: { t: "Saturn in Capricorn when well-aspected is strong and therefore his virtues are also pronounced.", s: "heindel" },
+        10: { t: "Saturn in Aquarius when well-aspected gives a humane outlook upon life, a sympathetic and friendly disposition, very distinct and deliberate speech and a seriousness in all affairs of life.", s: "heindel" },
+      },
+      Uranus: {
+        0: { t: "Uranus in Aries gives an original, independent nature, full of energy and ambition, ingenious, resourceful and capable of coping with difficulties, especially those of a mechanical or electrical nature.", s: "heindel" },
+        2: { t: "Uranus in Gemini gives a highly original, intuitive and versatile nature, fond of scientific pursuits in general, but particularly those studies which have to do with electricity, aviation, or other similar out-of-the-way subjects.", s: "heindel" },
+        3: { t: "Uranus in Cancer. Cancer is a psychic sign and when Uranus is there it indicates that the person is a sensitive,, attuned to the psychic vibrations and capable of cultivating these powers, but whether for good or ill depends upon the aspects.", s: "heindel" },
+        4: { t: "Uranus in Leo gives a very determined nature, rebellious and impatient of restraint or contradiction, with strong likes and dislikes, and an utter disregard of the conventions where the passional nature is involved.", s: "heindel" },
+        6: { t: "Uranus in Libra, when well-aspected gives literary and artistic ability of an unusual and original nature where the person follows independent lines of endeavor and expression, often in connection with occultism.", s: "heindel" },
+        7: { t: "Uranus in Scorpio, when well-aspected gives the person a forceful and determined will, bound to overcome all obstacles and achieve that which he sets out to accomplish by persistence, perseverance and dogged determination.", s: "heindel" },
+        8: { t: "Uranus in Sagittarius gives a very strong intuitive faculty with a tendency to dreams, visions, and a very vivid imagination.", s: "heindel" },
+        10: { t: "Uranus in Aquarius, when well-aspected is at its very best, for he is ruler of this sign and therefore in harmony with its vibrations.", s: "heindel" },
+        11: { t: "Uranus in Pisces, when well-aspected indidicates a love of the occult arts and ability of development along these lines.", s: "heindel" },
+      },
+      Neptune: {
+        0: { t: "Neptune in Aries, when well-aspected fills a person with religious enthusiasm, though not always of the orthodox kind, and gives him the energy and ambition to push forward to the front rank in whatever line of thought and belief he espouses.", s: "heindel" },
+        1: { t: "Neptune in Taurus gives a kindly, companionable disposition and an inclination towards the beautiful and artistic in nature.", s: "heindel" },
+        2: { t: "Neptune in Gemini, well-aspected, is one of the best indications of unusual mental faculties, for Neptune is the octave of Mercury the planet of mind, logic and reason.", s: "heindel" },
+        3: { t: "Neptune in Cancer, when well-aspected, gives an intuitive, sympathetic and lovable nature quick to understand the sorrows and joys of others and ready to feel for them or with them.", s: "heindel" },
+        4: { t: "Neptune in Leo, when well-aspected, gives a generous, sympathetic and warm-hearted disposition, a sociable nature, fond of pleasures and artistic pursuits.", s: "heindel" },
+        6: { t: "Neptune in Libra, when well-aspected, gives a musical, poetic and artistic temperament and indicates a union of a highly spiritual nature which will be of great comfort and satisfaction to the person.", s: "heindel" },
+        7: { t: "Neptune in Scorpio, well-aspected, gives a desire to delve into the secrets of nature and thus it is a good position for those who work in scientific or occult research work.", s: "heindel" },
+        8: { t: "Neptune in Sagittarius, when well-aspected favors the inspirational, devotional and religious tendencies in the horoscope.", s: "heindel" },
+        10: { t: "Neptune in Aquarius, when well-aspected, gives an altruistic or Utopian disposition with a desire to emancipate the whole world from whatsoever social, mental, moral or physical ills the person may be able to perceive.", s: "heindel" },
+        11: { t: "Neptune in Pisces, when well-aspected gives a love of mysticism and as an investigator of the occult.", s: "heindel" },
+      },
     },
   };
 })(window.AstroScape);

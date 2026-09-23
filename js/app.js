@@ -187,7 +187,9 @@
     // дом и достоинство считаются в общем проходе, переносим их в карточку
     const cur = states && states[state.selected];
     if (cur) { full.house = cur.house; full.dignity = cur.dignity; }
-    UI.renderDetail(state.selected, full, riseSets[state.selected], state.date);
+    const q = scene && scene.options.tradition && NS.Interp
+      ? NS.Interp.quote(state.selected, full.signIdx) : null;
+    UI.renderDetail(state.selected, full, riseSets[state.selected], state.date, q);
   }
 
   // ---------- время ----------
@@ -352,7 +354,7 @@
   }, 9000);
 
   // ---------- запуск ----------
-  NS.VERSION = '1.5.0';
+  NS.VERSION = '1.6.0';
   NS.boot = function (libs) {
     try { bootInner(libs); } catch (e) { showBootError((e && e.message) || e); throw e; }
   };
@@ -438,7 +440,7 @@
   }
   function toggleOption(k) {
     scene.setOption(k, !scene.options[k]); save(); syncToolbar();
-    if (k === 'tradition') renderReading();      // выдержки появляются и исчезают вместе со слоем
+    if (k === 'tradition') { renderReading(); renderDetail(); }   // выдержки появляются и исчезают вместе со слоем
   }
   function toggleMode() { setMode(state.mode === 'helio' ? 'geo' : 'helio'); }
 
