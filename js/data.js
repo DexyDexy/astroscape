@@ -62,6 +62,10 @@ window.AstroScape = window.AstroScape || {};
     Sun: [0, 19], Moon: [1, 3], Mercury: [5, 15], Venus: [11, 27],
     Mars: [9, 28], Jupiter: [3, 15], Saturn: [6, 21],
   };
+  // Деканы: 36 отрезков по 10°, управители идут халдейским рядом с Марса (1-й декан Овна)
+  NS.DECAN_ORDER = ['Mars', 'Sun', 'Venus', 'Mercury', 'Moon', 'Saturn', 'Jupiter'];
+  NS.decanRuler = lonDeg => NS.DECAN_ORDER[Math.floor(((lonDeg % 360) + 360) % 360 / 10) % 7];
+
   // Халдейский ряд: по нему идут управители планетарных часов
   NS.CHALDEAN = ['Saturn', 'Jupiter', 'Mars', 'Sun', 'Venus', 'Mercury', 'Moon'];
   // Управитель дня недели, начиная с воскресенья

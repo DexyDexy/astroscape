@@ -356,6 +356,8 @@ table.planets td.alt .dn { color: var(--muted); }
 .lbl-zodiac small { display: block; font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); text-shadow: none; }
 .lbl-card { font-size: 12px; font-weight: 700; letter-spacing: .2em; color: var(--ochre); text-shadow: 0 0 8px rgba(224,160,74,.6); }
 .lbl-star { font-size: 10px; letter-spacing: .1em; color: rgba(220,235,255,.65); transform: translate(8px, -10px); }
+.lbl-trad { font-size: 11px; opacity: .55; text-shadow: 0 0 5px #000; }
+.lbl-exalt { font-size: 10px; opacity: .8; text-shadow: 0 0 5px #000; }
 .lbl-tiny { font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--cyan-dim); }
 .lbl-sun { font-size: 12px; letter-spacing: .1em; color: var(--gold); padding: 2px 8px 3px; border-top: 1px solid currentColor; background: rgba(0, 0, 0, .55); }
 .lbl-city { font-size: 9px; letter-spacing: .08em; color: rgba(245,197,107,.8); transform: translate(6px, -10px); text-shadow: 0 0 4px #000, 0 0 2px #000; }

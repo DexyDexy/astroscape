@@ -9,7 +9,7 @@
     const S = this;
     const Astro = NS.Astro;
     S.mode = 'geo';
-    S.options = { aspects: true, bloom: true, starLabels: true };
+    S.options = { aspects: true, bloom: true, starLabels: true, tradition: false };
     S.selected = null;
     S.pickGlobe = false;
     S.onPick = opts.onPick || function () {};
@@ -805,6 +805,38 @@
       put(ascLabel, h.asc); put(mcLabel, h.mc);
     }
 
+    // Традиционный слой: управители знаков и градусы экзальтаций на кольце зодиака.
+    // Ничего не считается заново — это справочные данные старой астрологии,
+    // нанесённые на ту же шкалу, что и положения планет.
+    const tradGroup = new THREE.Group(); tradGroup.visible = false; zodiacGroup.add(tradGroup);
+    (function buildTradition() {
+      const R = NS.ZODIAC_R, Ri = R - 0.3;
+      NS.ZODIAC.forEach((z, i) => {
+        const id = NS.SIGN_RULER[i], b = NS.BODY[id];
+        if (!b) return;
+        const a = (i * 30 + 15) * DEG, r = Ri - 0.17;
+        const l = makeLabel(b.glyph, 'lbl-trad');
+        l.el.style.color = b.color;
+        l.el.title = b.name;
+        l.position.set(r * Math.cos(a), 0, -r * Math.sin(a));
+        tradGroup.add(l);
+      });
+      const ticks = [];
+      Object.keys(NS.EXALT).forEach(id => {
+        const ex = NS.EXALT[id], b = NS.BODY[id];
+        if (!b) return;
+        const lon = ex[0] * 30 + ex[1], a = lon * DEG;
+        ticks.push((Ri - 0.02) * Math.cos(a), 0, -(Ri - 0.02) * Math.sin(a),
+                   (R + 0.12) * Math.cos(a), 0, -(R + 0.12) * Math.sin(a));
+        const l = makeLabel(b.glyph, 'lbl-exalt');
+        l.el.style.color = b.color;
+        const r = R + 0.22;
+        l.position.set(r * Math.cos(a), 0, -r * Math.sin(a));
+        tradGroup.add(l);
+      });
+      tradGroup.add(segments(ticks, '#bfeaff', 0.5));
+    })();
+
     // ------------------------------------------------------------ планеты (геоцентр)
     const geoGroup = new THREE.Group(); eclGroup.add(geoGroup);
     S.geo = {};
@@ -1207,6 +1239,7 @@
     S.setOption = function (k, v) {
       S.options[k] = v;
       if (k === 'starLabels') S.starLabels.forEach(l => { l.visible = v; });
+      if (k === 'tradition') tradGroup.visible = v;
     };
     S.setSelected = function (id) { S.selected = id; };
     S.setPickGlobe = function (on) { S.pickGlobe = on; renderer.domElement.style.cursor = on ? 'crosshair' : ''; };

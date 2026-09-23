@@ -109,6 +109,13 @@
     if (s.mag != null && isFinite(s.mag)) rows.push([t('mag'), (s.mag >= 0 ? '+' : '−') + Math.abs(s.mag).toFixed(1) + 'ᵐ']);
     if (s.phaseFraction != null && id !== 'Sun') rows.push([t('illum'), Math.round(s.phaseFraction * 100) + ' %']);
     if (s.elongation != null) rows.push([t('elong'), s.elongation.toFixed(1) + '°']);
+    if (NS.decanRuler) {
+      const dr = NS.BODY[NS.decanRuler(s.lon)];
+      const n = Math.floor((s.lon % 30) / 10) + 1;
+      rows.push([t('decan'), n + ' · ' + (dr ? dr.glyph + ' ' + dr.name : '')]);
+    }
+    if (s.house) rows.push([t('houseWord'), String(s.house)]);
+    if (s.dignity) rows.push([t('dignity'), t('dign.' + s.dignity)]);
     rows.push([t('altAz'), fmt.deg(s.alt) + ' / ' + s.az.toFixed(1) + '°']);
     rows.push([t('raDec'), fmt.hms(s.ra) + ' / ' + fmt.deg(s.dec)]);
     rows.push([t('eclLat'), fmt.deg(s.lat, 2)]);
