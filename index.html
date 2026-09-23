@@ -119,11 +119,24 @@
       <button id="btn-help" class="tb" data-i18n-title="btnHelpTitle">?</button>
     </div>
 
+    <section class="panel collapsible" id="panel-situation">
+      <header><h2 data-i18n="situation"></h2><span class="hint" id="situation-hint">—</span><i class="chev"></i></header>
+      <div class="body">
+        <div class="kv">
+          <div><span data-i18n="ascendant"></span><b id="sit-asc">—</b></div>
+          <div><span data-i18n="midheaven"></span><b id="sit-mc">—</b></div>
+          <div><span data-i18n="dayRuler"></span><b id="sit-day">—</b></div>
+          <div><span data-i18n="hourRuler"></span><b id="sit-hour">—</b></div>
+          <div><span data-i18n="houseSystem"></span><b id="sit-sys">—</b></div>
+        </div>
+      </div>
+    </section>
+
     <section class="panel collapsible" id="panel-planets">
       <header><h2 data-i18n="planets"></h2><span class="hint" id="planets-hint"></span><i class="chev"></i></header>
       <div class="body">
         <table class="planets" id="planets-table">
-          <thead><tr><th></th><th data-i18n="thBody"></th><th data-i18n="thPos"></th><th data-i18n="thAlt" data-i18n-title="thAltTitle"></th><th data-i18n="thRise"></th></tr></thead>
+          <thead><tr><th></th><th data-i18n="thBody"></th><th data-i18n="thPos"></th><th data-i18n="thHouse" data-i18n-title="thHouseTitle"></th><th data-i18n="thAlt" data-i18n-title="thAltTitle"></th><th data-i18n="thRise"></th></tr></thead>
           <tbody></tbody>
         </table>
         <div class="planet-detail" id="planet-detail"></div>

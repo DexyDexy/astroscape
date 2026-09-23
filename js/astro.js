@@ -122,6 +122,118 @@
     return { rise: rise && rise.date, set: set && set.date, dayStart: start };
   }
 
+  // ---- дома, углы карты, достоинства -----------------------------------------
+  // Асцендент и МС считаются из звёздного времени и широты, дома Плацидуса —
+  // итерацией по полусуточной дуге. В высоких широтах Плацидус не определён
+  // (тело не восходит), там автоматически переходим на цельнознаковые дома.
+  function angles(date, observer) {
+    const eps = obliquity(date) * DEG;
+    const ramc = lst(date, observer.longitude !== undefined ? observer.longitude : observer.lon) * 15 * DEG;
+    const phi = (observer.latitude !== undefined ? observer.latitude : observer.lat) * DEG;
+    const mc = norm360(Math.atan2(Math.sin(ramc), Math.cos(ramc) * Math.cos(eps)) / DEG);
+    let asc = Math.atan2(Math.cos(ramc), -(Math.sin(ramc) * Math.cos(eps) + Math.tan(phi) * Math.sin(eps))) / DEG;
+    asc = norm360(asc);
+    // Асцендент всегда «слева» от МС: между МС и МС+180 по ходу знаков
+    if (norm360(asc - mc) > 180) asc = norm360(asc + 180);
+    return { asc, mc, ramc: ramc / DEG, eps: eps / DEG, phi: phi / DEG };
+  }
+  // эклиптическая долгота точки эклиптики по её прямому восхождению
+  function raToLon(raDeg, epsDeg) {
+    const ra = raDeg * DEG, eps = epsDeg * DEG;
+    return norm360(Math.atan2(Math.sin(ra), Math.cos(ra) * Math.cos(eps)) / DEG);
+  }
+  // Куспид Плацидуса: точка прошла долю f своей полусуточной дуги после МС
+  function placidusCusp(ramc, phi, eps, base, coef) {
+    let ra = ramc + base;
+    for (let i = 0; i < 40; i++) {
+      const dec = Math.atan(Math.tan(eps * DEG) * Math.sin(ra * DEG));
+      const t = Math.tan(phi * DEG) * Math.tan(dec);
+      if (Math.abs(t) >= 1) return null;                  // приполярье: дуги нет
+      const ad = Math.asin(t) / DEG;                      // разность восхождения
+      const next = ramc + base + coef * ad;
+      if (Math.abs(next - ra) < 1e-7) { ra = next; break; }
+      ra = next;
+    }
+    return raToLon(ra, eps);
+  }
+  function houses(date, observer, system) {
+    const a = angles(date, observer);
+    const cusps = new Array(12);
+    let used = system || 'placidus';
+    if (used === 'placidus') {
+      const specs = [[30, 1 / 3], [60, 2 / 3], [120, 2 / 3], [150, 1 / 3]];   // XI, XII, II, III
+      const got = specs.map(sp => placidusCusp(a.ramc, a.phi, a.eps, sp[0], sp[1]));
+      if (got.some(v => v === null) || Math.abs(a.phi) > 66) used = 'whole';
+      else {
+        cusps[0] = a.asc; cusps[9] = a.mc;
+        cusps[10] = got[0]; cusps[11] = got[1]; cusps[1] = got[2]; cusps[2] = got[3];
+        // противоположные куспиды: IV=X+180, V=XI+180, VI=XII+180, VII=I+180, VIII=II+180, IX=III+180
+        cusps[3] = norm360(cusps[9] + 180); cusps[4] = norm360(cusps[10] + 180);
+        cusps[5] = norm360(cusps[11] + 180); cusps[6] = norm360(cusps[0] + 180);
+        cusps[7] = norm360(cusps[1] + 180); cusps[8] = norm360(cusps[2] + 180);
+      }
+    }
+    if (used === 'whole') {
+      const start = Math.floor(a.asc / 30) * 30;
+      for (let i = 0; i < 12; i++) cusps[i] = norm360(start + i * 30);
+    } else if (used === 'equal') {
+      for (let i = 0; i < 12; i++) cusps[i] = norm360(a.asc + i * 30);
+    }
+    return { cusps, asc: a.asc, mc: a.mc, system: used };
+  }
+  function houseOf(lon, cusps) {
+    for (let i = 0; i < 12; i++) {
+      const a = cusps[i], b = cusps[(i + 1) % 12];
+      const span = norm360(b - a), pos = norm360(lon - a);
+      if (pos < span || span === 0) return i + 1;
+    }
+    return 1;
+  }
+  // Достоинство планеты в её знаке: обитель, экзальтация, изгнание, падение
+  function dignity(id, lon) {
+    const sign = Math.floor(norm360(lon) / 30);
+    const ruler = NS.SIGN_RULER[sign];
+    if (ruler === id) return 'domicile';
+    if (NS.SIGN_RULER[(sign + 6) % 12] === id) return 'detriment';
+    const ex = NS.EXALT[id];
+    if (ex) {
+      if (ex[0] === sign) return 'exalt';
+      if ((ex[0] + 6) % 12 === sign) return 'fall';
+    }
+    return null;
+  }
+  // Планетарные день и час: сутки начинаются с восхода Солнца, светлое и тёмное
+  // время делятся на 12 частей каждое, управители идут по халдейскому ряду.
+  function planetaryHour(date, observer) {
+    let dayStart = null, dayEnd = null, isDay = true;
+    try {
+      const riseBefore = A.SearchRiseSet('Sun', observer, +1, date, -1.2);
+      const setAfter = A.SearchRiseSet('Sun', observer, -1, date, 1.2);
+      if (riseBefore && setAfter && setAfter.date > riseBefore.date && setAfter.date > date) {
+        dayStart = riseBefore.date; dayEnd = setAfter.date; isDay = true;
+      } else {
+        const setBefore = A.SearchRiseSet('Sun', observer, -1, date, -1.2);
+        const riseAfter = A.SearchRiseSet('Sun', observer, +1, date, 1.2);
+        if (!setBefore || !riseAfter) return null;
+        dayStart = setBefore.date; dayEnd = riseAfter.date; isDay = false;
+      }
+    } catch (e) { return null; }
+    const len = (dayEnd - dayStart) / 12;
+    if (!(len > 0)) return null;
+    const idx = Math.max(0, Math.min(11, Math.floor((date - dayStart) / len)));
+    // управитель дня — по дню недели тех суток, что начались с восхода
+    const anchor = isDay ? dayStart : new Date(dayStart.getTime() - 6 * 3600 * 1000);
+    const dayRuler = NS.WEEKDAY_RULER[anchor.getDay()];
+    const base = NS.CHALDEAN.indexOf(dayRuler);
+    const seq = (isDay ? 0 : 12) + idx;                 // ночные часы продолжают дневные
+    const hourRuler = NS.CHALDEAN[(base + seq) % 7];
+    return {
+      dayRuler, hourRuler, isDay, index: idx + 1,
+      start: new Date(dayStart.getTime() + idx * len),
+      end: new Date(dayStart.getTime() + (idx + 1) * len),
+    };
+  }
+
   // ---- Солнце ----------------------------------------------------------------
   function sunInfo(date, observer) {
     const rs = riseSet('Sun', date, observer);
@@ -270,5 +382,6 @@
     observer: (lat, lon) => new A.Observer(lat, lon, 0),
     geoEcliptic, bodyState, allStates, aspects, moonInfo, sunInfo, riseSet,
     retroInfo, allRetro, eclipses, helioPos, orbitPath, helioScale, sunDirection, gst, lst, jd, obliquity,
+    angles, houses, houseOf, dignity, planetaryHour,
   };
 })(window.AstroScape);

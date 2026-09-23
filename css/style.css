@@ -177,6 +177,18 @@ body {
 .list .tag.direct { color: var(--green); border-color: rgba(142,230,165,.4); }
 .list .tag.station { color: var(--gold); border-color: rgba(245,197,107,.5); }
 
+#panel-situation .kv > div { flex-wrap: wrap; }
+#panel-situation .kv > div b { white-space: normal; min-width: 0; }
+#sit-hour small { margin-left: 5px; opacity: .65; font-size: 10.5px; }
+
+/* колонка дома и метка достоинства планеты */
+table.planets td.hs { white-space: nowrap; font-family: var(--font-mono); font-size: 10.5px; }
+table.planets td.hs .hn { color: var(--text); opacity: .85; }
+table.planets td.hs .dg { margin-left: 4px; padding: 0 3px; border: 1px solid currentColor; border-radius: 2px; font-size: 9px; letter-spacing: .04em; opacity: .9; }
+table.planets td.hs .dg.domicile, table.planets td.hs .dg.exalt { color: var(--green); }
+table.planets td.hs .dg.detriment, table.planets td.hs .dg.fall { color: var(--red); }
+@media (max-width: 560px) { table.planets td.hs .dg { display: none; } }
+
 /* toolbar: справа место под кнопку «открыть/скрыть» */
 .toolbar { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; margin-right: 38px; }
 

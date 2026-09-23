@@ -16,7 +16,7 @@
     mode: 'geo',
   };
   let scene = null, obsObj = null;
-  let states = null, aspects = null, riseSets = {}, heavy = null;
+  let states = null, aspects = null, riseSets = {}, heavy = null, houses = null, phour = null;
   let lastLightMs = -Infinity, lastHeavyMs = -Infinity, heavyTimer = null, heavyPending = false;
   let dragging = false;
   let firstRun = false, guess = null;   // первый запуск: предположение о месте по часовому поясу
@@ -122,6 +122,14 @@
     lastLightMs = ms;
     states = Astro.allStates(state.date, obsObj);
     aspects = Astro.aspects(states);
+    // углы карты и дома: по ним считаются дом каждой планеты и достоинства
+    houses = Astro.houses(state.date, obsObj, state.houseSystem);
+    NS.BODIES.forEach(b => {
+      const s = states[b.id];
+      if (!s) return;
+      s.house = Astro.houseOf(s.lon, houses.cusps);
+      s.dignity = Astro.dignity(b.id, s.lon);
+    });
     return true;
   }
 
@@ -141,8 +149,10 @@
       moon: Astro.moonInfo(d, obsObj, states.Moon),
       sun: Astro.sunInfo(d, obsObj),
       retro: Astro.allRetro(d),
+      hour: Astro.planetaryHour(d, obsObj),
       eclipses: Astro.eclipses(d, obsObj),
     };
+    phour = heavy.hour;
     heavy.retroMap = {};
     heavy.retro.forEach(r => { heavy.retroMap[r.id] = r; });
     renderHeavy();
@@ -156,6 +166,7 @@
     UI.renderSun(heavy.sun, states.Sun, d);
     UI.renderRetro(heavy.retro, d);
     UI.renderEclipses(heavy.eclipses, d);
+    UI.renderSituation(houses, phour, d);
     UI.renderPlanets(states, riseSets, state.selected);
     renderDetail();
   }
@@ -213,11 +224,12 @@
       }
       UI.renderPlanets(states, riseSets, state.selected);
       UI.renderAspects(aspects);
+      UI.renderSituation(houses, phour, state.date);
       if (heavy && (state.playing && state.speed > 60 || state.selected)) renderHeavyFast();
     }
     UI.renderClock(state.date, state.observer, state.live);
     scene.update({
-      date: state.date, states, aspects,
+      date: state.date, states, aspects, houses,
       gst: Astro.gst(state.date), sunDir: Astro.sunDirection(state.date), obliquity: Astro.obliquity(state.date),
       observer: state.observer,
     });
@@ -325,7 +337,7 @@
   }, 9000);
 
   // ---------- запуск ----------
-  NS.VERSION = '1.0.8';
+  NS.VERSION = '1.1.0';
   NS.boot = function (libs) {
     try { bootInner(libs); } catch (e) { showBootError((e && e.message) || e); throw e; }
   };

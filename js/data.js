@@ -52,6 +52,21 @@ window.AstroScape = window.AstroScape || {};
 
   NS.QUARTER_ICONS = ['●', '◗', '○', '◖'];
 
+  // Традиционные управители знаков (схема до открытия Урана, Нептуна и Плутона)
+  // и современные добавки. Порядок: Овен … Рыбы.
+  NS.SIGN_RULER = ['Mars', 'Venus', 'Mercury', 'Moon', 'Sun', 'Mercury',
+                   'Venus', 'Mars', 'Jupiter', 'Saturn', 'Saturn', 'Jupiter'];
+  NS.SIGN_RULER_MODERN = { 7: 'Pluto', 10: 'Uranus', 11: 'Neptune' };
+  // Экзальтации: знак (0-11) и градус
+  NS.EXALT = {
+    Sun: [0, 19], Moon: [1, 3], Mercury: [5, 15], Venus: [11, 27],
+    Mars: [9, 28], Jupiter: [3, 15], Saturn: [6, 21],
+  };
+  // Халдейский ряд: по нему идут управители планетарных часов
+  NS.CHALDEAN = ['Saturn', 'Jupiter', 'Mars', 'Sun', 'Venus', 'Mercury', 'Moon'];
+  // Управитель дня недели, начиная с воскресенья
+  NS.WEEKDAY_RULER = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'];
+
   // Яркие звёзды: [name en, name ru, RA часы, Dec градусы, зв. величина]  (J2000, округлённо)
   NS.STARS = [
     ['Sirius', 'Сириус', 6.752, -16.72, -1.46], ['Canopus', 'Канопус', 6.399, -52.70, -0.74], ['Arcturus', 'Арктур', 14.261, 19.18, -0.05],

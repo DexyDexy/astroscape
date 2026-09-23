@@ -780,6 +780,31 @@
       });
     })();
 
+    // Куспиды домов, Асцендент и МС: лежат в плоскости эклиптики, поэтому живут
+    // в eclGroup вместе с кольцом зодиака. Цвет охристый: они зависят от места и времени.
+    const chartGroup = new THREE.Group(); eclGroup.add(chartGroup);
+    const cuspLines = [];
+    for (let i = 0; i < 12; i++) {
+      const l = dynLine(2, OBS_COLOR, i % 3 === 0 ? 0.32 : 0.12);
+      chartGroup.add(l); cuspLines.push(l);
+    }
+    const ascLabel = makeLabel('ASC', 'lbl-tiny'); chartGroup.add(ascLabel);
+    const mcLabel = makeLabel('MC', 'lbl-tiny'); chartGroup.add(mcLabel);
+    function setCusps(h) {
+      if (!h) return;
+      const Ri = NS.ZODIAC_R - 0.3;
+      for (let i = 0; i < 12; i++) {
+        const a = h.cusps[i] * DEG, ang = i % 3 === 0 ? 0.06 : 0.0;
+        const r0 = 1.08, r1 = Ri - (i % 3 === 0 ? 0.0 : 0.12);
+        setLine(cuspLines[i], [[r0 * Math.cos(a), 0, -r0 * Math.sin(a)], [r1 * Math.cos(a), 0, -r1 * Math.sin(a)]]);
+      }
+      const put = (lbl, lon) => {
+        const a = lon * DEG, r = Ri + 0.12;
+        lbl.position.set(r * Math.cos(a), 0, -r * Math.sin(a));
+      };
+      put(ascLabel, h.asc); put(mcLabel, h.mc);
+    }
+
     // ------------------------------------------------------------ планеты (геоцентр)
     const geoGroup = new THREE.Group(); eclGroup.add(geoGroup);
     S.geo = {};
@@ -972,6 +997,8 @@
       horGroup.matrix.copy(tmpM);
       horGroup.matrixWorldNeedsUpdate = true;
 
+      chartGroup.visible = S.mode === 'geo';
+      if (chartGroup.visible) setCusps(f.houses);
       if (S.mode === 'helio') updateHelio(f); else updateGeo(f);
     };
 
@@ -1078,6 +1105,7 @@
       const was = S.mode;
       S.mode = mode;
       const geo = mode === 'geo', sky = mode === 'sky', helio = mode === 'helio';
+      chartGroup.visible = geo;
       earthGroup.visible = geo; horGroup.visible = !helio; geoGroup.visible = !helio; helioGroup.visible = helio; subsolar.visible = geo;
       ground.visible = sky;
       aspLines.visible = !sky;                 // хорды между телами из центра режут всё небо

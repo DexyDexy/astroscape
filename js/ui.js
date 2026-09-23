@@ -73,7 +73,7 @@
     tb.innerHTML = '';
     NS.BODIES.forEach(b => {
       const tr = document.createElement('tr'); tr.dataset.id = b.id;
-      tr.innerHTML = '<td class="g" style="color:' + b.color + '">' + b.glyph + '</td><td class="n">' + b.name + '<span class="rx"></span></td><td class="pos"></td><td class="alt"></td><td class="rs"></td>';
+      tr.innerHTML = '<td class="g" style="color:' + b.color + '">' + b.glyph + '</td><td class="n">' + b.name + '<span class="rx"></span></td><td class="pos"></td><td class="hs"></td><td class="alt"></td><td class="rs"></td>';
       tr.addEventListener('click', () => onSelect(b.id));
       tb.appendChild(tr);
     });
@@ -86,9 +86,11 @@
       const z = NS.ZODIAC[s.signIdx];
       setHTMLel(tr.children[1].querySelector('.rx'), s.retro ? '℞' : '');
       setHTMLel(tr.children[2], '<span class="sg" style="color:' + NS.ELEMENT_COLOR[z.el] + '">' + z.glyph + '</span>' + s.deg + '°' + pad(s.min) + '′');
-      setHTMLel(tr.children[3], '<span class="' + (s.above ? 'up' : 'dn') + '">' + (s.above ? '↑' : '↓') + fmt.deg(s.alt, 0) + '</span> <span style="opacity:.6">' + Math.round(s.az) + '°</span>');
+      const dg = s.dignity ? '<span class="dg ' + s.dignity + '" title="' + t('dign.' + s.dignity) + '">' + t('dignShort.' + s.dignity) + '</span>' : '';
+      setHTMLel(tr.children[3], (s.house ? '<span class="hn">' + s.house + '</span>' : '') + dg);
+      setHTMLel(tr.children[4], '<span class="' + (s.above ? 'up' : 'dn') + '">' + (s.above ? '↑' : '↓') + fmt.deg(s.alt, 0) + '</span> <span style="opacity:.6">' + Math.round(s.az) + '°</span>');
       const rs = riseSets && riseSets[b.id];
-      setHTMLel(tr.children[4], rs ? fmt.time(rs.rise) + ' · ' + fmt.time(rs.set) : '…');
+      setHTMLel(tr.children[5], rs ? fmt.time(rs.rise) + ' · ' + fmt.time(rs.set) : '…');
       tr.classList.toggle('below', !s.above);
       tr.classList.toggle('sel', selected === b.id);
     });
@@ -246,5 +248,25 @@
       items.map(o => '<option value="' + o.i + '">' + o.name + '</option>').join('');
   }
 
-  NS.UI = { renderClock, buildRows, renderPlanets, renderDetail, renderMoon, renderSun, renderRetro, renderAspects, renderEclipses, initPanels, toast, fillPresets, drawMoon };
+  // ---------- обстановка: углы карты, управители дня и часа ----------
+  function renderSituation(h, ph, date) {
+    const sign = lon => {
+      const i = Math.floor(((lon % 360) + 360) % 360 / 30), d = lon - i * 30;
+      const z = NS.ZODIAC[i];
+      return '<span class="sg" style="color:' + NS.ELEMENT_COLOR[z.el] + '">' + z.glyph + '</span>' +
+             Math.floor(d) + '°' + pad(Math.floor((d % 1) * 60)) + '′';
+    };
+    const planet = id => {
+      const b = NS.BODY[id];
+      return b ? '<span style="color:' + b.color + '">' + b.glyph + '</span> ' + b.name : '—';
+    };
+    setHTMLel($('sit-asc'), h ? sign(h.asc) : '—');
+    setHTMLel($('sit-mc'), h ? sign(h.mc) : '—');
+    setHTMLel($('sit-day'), ph ? planet(ph.dayRuler) : '—');
+    setHTMLel($('sit-hour'), ph ? planet(ph.hourRuler) + ' <small>' + t('untilTime', { t: fmt.time(ph.end) }) + '</small>' : '—');
+    setText('sit-sys', h ? t('houseSys.' + h.system) : '—');
+    setText('situation-hint', ph ? t(ph.isDay ? 'dayChart' : 'nightChart') : '');
+  }
+
+  NS.UI = { renderSituation, renderClock, buildRows, renderPlanets, renderDetail, renderMoon, renderSun, renderRetro, renderAspects, renderEclipses, initPanels, toast, fillPresets, drawMoon };
 })(window.AstroScape);
