@@ -226,7 +226,10 @@
     if (!ctx || !ctx.states || !ctx.states.Moon) return null;
     ctx.void = voidMoon(ctx.states, ctx.date);
     ctx.moonNext = ctx.void ? null : moonNext(ctx.states, ctx.date);
-    const list = facts(ctx).sort((x, y) => y.weight - x.weight);
+    // Порядок: по весу, но с огрублением до 0,05. Иначе два почти равных факта
+    // меняются местами от кадра к кадру и текст в панели дёргается.
+    const list = facts(ctx).sort((x, y) =>
+      (Math.round(y.weight * 20) - Math.round(x.weight * 20)) || (x.key < y.key ? -1 : x.key > y.key ? 1 : 0));
     // один факт на ключ; сверх того потолок по темам, чтобы одна из них не забрала всё
     const CAP = { aspect: 3, moon: 3, sun: 2 };
     const seen = {}, count = {}, items = [];

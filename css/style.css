@@ -67,7 +67,9 @@ body {
   padding: 14px;
 }
 #hud > * { pointer-events: auto; }
-.col { display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; overflow-x: hidden; padding-right: 2px; scrollbar-width: thin; scrollbar-color: rgba(127,215,255,.25) transparent; }
+/* место под полосу прокрутки резервируется всегда: иначе её появление сужает
+   панели на несколько пикселей и текст перескакивает по строкам */
+.col { display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; padding-right: 2px; scrollbar-width: thin; scrollbar-color: rgba(127,215,255,.25) transparent; }
 .col::-webkit-scrollbar { width: 5px; }
 .col::-webkit-scrollbar-thumb { background: rgba(127,215,255,.25); border-radius: 3px; }
 .col-left { grid-column: 1; grid-row: 1; }
@@ -186,7 +188,7 @@ body {
 .reading-list li { display: block; padding: 6px 0; font-size: 12px; line-height: 1.5; color: var(--text); border-bottom: 1px dotted rgba(127,215,255,.12); }
 .reading-list li:last-child { border-bottom: 0; }
 #reading-note { margin: 8px 0 0; font-size: 10.5px; line-height: 1.4; color: var(--muted); }
-#panel-reading .body { max-height: 46vh; overflow-y: auto; }
+#panel-reading .body { max-height: 46vh; overflow-y: auto; scrollbar-gutter: stable; }
 
 /* колонка дома и метка достоинства планеты */
 table.planets td.hs { white-space: nowrap; font-family: var(--font-mono); font-size: 10.5px; }
@@ -405,7 +407,7 @@ table.planets td.alt .dn { color: var(--muted); }
   .panel header { padding: 7px 10px; }
   .panel header h2 { font-size: 11px; letter-spacing: .16em; }
   .panel header .hint { font-size: 10px; }
-  .panel .body { padding: 8px 10px 10px; max-height: 38vh; overflow-y: auto; }
+  .panel .body { padding: 8px 10px 10px; max-height: 38vh; overflow-y: auto; scrollbar-gutter: stable; }
   .tb { padding: 5px 7px; font-size: 10px; letter-spacing: .06em; }
   .tbtn { padding: 6px 9px; }
   .timebar select, .timebar input[type=datetime-local] { font-size: 11px; padding: 4px 6px; }
