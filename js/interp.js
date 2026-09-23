@@ -57,6 +57,43 @@
     return { until: new Date(date.getTime() + toExit * DAY) };
   }
 
+  // Ближайший точный аспект Луны к классическим светилам: считаем по скоростям,
+  // на несколько часов вперёд этого достаточно.
+  function moonNext(states, date) {
+    const m = states.Moon;
+    if (!m) return null;
+    let best = null;
+    CLASSIC.forEach(id => {
+      const p = states[id];
+      if (!p) return;
+      const rel = m.speed - p.speed;
+      if (Math.abs(rel) < 1e-6) return;
+      NS.ASPECTS.forEach((asp, ai) => {
+        [asp.angle, -asp.angle].forEach(target => {
+          const diff = wrap180(m.lon - p.lon);
+          const dt = (target - diff) / rel;
+          if (dt > 0 && dt < 2 && (!best || dt < best.dt)) best = { dt, id, ai };
+        });
+      });
+    });
+    if (!best) return null;
+    return { id: best.id, ai: best.ai, when: new Date(date.getTime() + best.dt * DAY) };
+  }
+  // Сколько осталось до смены знака: у быстрых тел это ощутимое событие
+  function ingress(states, date, id, maxDays) {
+    const s = states[id];
+    if (!s || !(s.speed > 0)) return null;
+    const dt = (30 - (s.lon % 30)) / s.speed;
+    if (!(dt > 0) || dt > maxDays) return null;
+    return { id, dt, when: new Date(date.getTime() + dt * DAY), sign: (s.signIdx + 1) % 12 };
+  }
+  function whenWord(T, date, now) {
+    const d = Math.round((date - now) / DAY);
+    if (d <= 0) return T.whenWord.today;
+    if (d === 1) return T.whenWord.tomorrow;
+    return fill(T.whenWord.inDays, { n: d });
+  }
+
   // ---- сбор фактов -----------------------------------------------------------
   function facts(ctx) {
     const T = L(), out = [];
@@ -87,16 +124,59 @@
       if (sun.house) add('sun.house', 1.7, fill(T.tpl.sunHouse, { house: sun.house, houseKw: kwH(sun.house) }));
     }
 
-    // Аспекты: вес по типу, точности и участникам
+    // Аспекты: вес по типу, точности и участникам; сходящийся весомее расходящегося
     (ctx.aspects || []).forEach(a => {
       const i = NS.ASPECTS.indexOf(a.aspect);
-      const w = (ASPECT_W[i] || 0.6) * (0.35 + 0.65 * a.tight)
+      const w = (ASPECT_W[i] || 0.6) * (0.35 + 0.65 * a.tight) * (a.applying ? 1.1 : 0.9)
               * (LUMINARY[a.a] || 0.85) * (LUMINARY[a.b] || 0.85);
       add('aspect.' + a.a + '.' + a.b, w, fill(T.tpl.aspect, {
         a: planetName(a.a), b: planetName(a.b), meaning: T.aspect[i] || '',
+        phase: (T.phase2 && T.phase2[a.applying ? 'applying' : 'separating']) || '',
         aKw: kwP(a.a), bKw: kwP(a.b),
       }));
     });
+
+    // Ближайший аспект Луны: чем ближе, тем весомее
+    const mn = ctx.moonNext;
+    if (mn) add('moon.next', 1.9 - Math.min(1.0, (mn.when - ctx.date) / DAY), fill(T.tpl.moonNext, {
+      asp: (NS.L.aspects && NS.L.aspects[mn.ai]) || '', sym: (NS.ASPECTS[mn.ai] || {}).sym || '',
+      planet: planetName(mn.id), t: ctx.fmtTime(mn.when),
+    }));
+
+    // Смена знака у быстрых тел
+    ['Moon', 'Sun', 'Mercury', 'Venus', 'Mars'].forEach(id => {
+      const g = ingress(st, ctx.date, id, id === 'Moon' ? 0.4 : 3);
+      if (!g) return;
+      add('ingress.' + id, id === 'Moon' ? 1.3 : 1.5 - g.dt * 0.2, fill(T.tpl.ingress, {
+        planet: planetName(id), sign: signName(g.sign), signKw: kwS(g.sign),
+        when: whenWord(T, g.when, ctx.date),
+      }));
+    });
+
+    // Стоянка планеты: разворот на ретроградное или прямое движение
+    (ctx.retro || []).forEach(r => {
+      const next = r.retro ? r.endDate : r.startDate && r.startDate > ctx.date ? r.startDate : r.nextRetroEnd;
+      const turn = r.retro ? r.endDate : r.nextRetroEnd;
+      if (!turn) return;
+      const days = (turn - ctx.date) / DAY;
+      if (days < 0 || days > 6) return;
+      add('station.' + r.id, 1.4 - days * 0.12, fill(T.tpl.station, {
+        planet: planetName(r.id), dir: T.dirWord[r.retro ? 'toDirect' : 'toRetro'],
+        when: whenWord(T, turn, ctx.date),
+      }));
+    });
+
+    // Затмение в ближайшую неделю
+    const ec = ctx.eclipses;
+    if (ec) {
+      [['solar', 'eclipseSun'], ['lunar', 'eclipseMoon']].forEach(([k, tplKey]) => {
+        const e = ec[k];
+        if (!e || !e.peak) return;
+        const days = (e.peak - ctx.date) / DAY;
+        if (days < 0 || days > 7) return;
+        add('eclipse.' + k, 2.4 - days * 0.15, fill(T.tpl[tplKey], { when: whenWord(T, e.peak, ctx.date) }));
+      });
+    }
 
     // Достоинства: у Солнца и Луны они уже дописаны к строке о знаке,
     // у дальних планет это фон на месяцы — остаются быстрые планеты
@@ -145,15 +225,18 @@
     const T = L();
     if (!ctx || !ctx.states || !ctx.states.Moon) return null;
     ctx.void = voidMoon(ctx.states, ctx.date);
+    ctx.moonNext = ctx.void ? null : moonNext(ctx.states, ctx.date);
     const list = facts(ctx).sort((x, y) => y.weight - x.weight);
-    // по одному факту на тему, аспектов — не больше трёх, чтобы не повторяться
-    const seen = {}; let asp = 0;
-    const items = [];
+    // один факт на ключ; сверх того потолок по темам, чтобы одна из них не забрала всё
+    const CAP = { aspect: 3, moon: 3, sun: 2 };
+    const seen = {}, count = {}, items = [];
     list.forEach(f => {
-      if (items.length >= (limit || 7)) return;
+      if (items.length >= (limit || 7) || seen[f.key]) return;
       const top = f.key.split('.')[0];
-      if (top === 'aspect') { if (asp >= 3) return; asp++; }
-      else { if (seen[top]) return; seen[top] = true; }
+      const cap = CAP[top] || 2;
+      if ((count[top] || 0) >= cap) return;
+      count[top] = (count[top] || 0) + 1;
+      seen[f.key] = true;
       items.push(f);
     });
     const moon = ctx.states.Moon;
@@ -167,5 +250,5 @@
     return { lead, items, note: T.note };
   }
 
-  NS.Interp = { build, voidMoon };
+  NS.Interp = { build, voidMoon, moonNext };
 })(window.AstroScape);

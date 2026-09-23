@@ -275,7 +275,6 @@
     setText('reading-lead', r.lead);
     const html = r.items.map(f => '<li>' + f.text + '</li>').join('');
     setHTMLel(list, html);
-    setText('reading-note', r.note);
     setText('reading-hint', r.items.length ? r.items.length + '' : '');
   }
 

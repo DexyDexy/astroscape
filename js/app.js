@@ -176,7 +176,8 @@
     if (!states || !NS.Interp) return;
     UI.renderReading(NS.Interp.build({
       date: state.date, states, aspects, houses, hour: phour,
-      moon: heavy && heavy.moon, fmtTime: UI.time,
+      moon: heavy && heavy.moon, retro: heavy && heavy.retro,
+      eclipses: heavy && heavy.eclipses, fmtTime: UI.time,
     }));
   }
   function renderDetail() {
