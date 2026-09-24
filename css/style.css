@@ -370,6 +370,8 @@ table.planets td.alt .dn { color: var(--muted); }
 .lbl-zodiac small { display: block; font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); text-shadow: none; }
 .lbl-card { font-size: 12px; font-weight: 700; letter-spacing: .2em; color: var(--ochre); text-shadow: 0 0 8px rgba(224,160,74,.6); }
 .lbl-star { font-size: 10px; letter-spacing: .1em; color: rgba(220,235,255,.65); transform: translate(8px, -10px); }
+.lbl-const { font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: rgba(127,215,255,.38); text-shadow: 0 0 6px #000; }
+.lbl-const.zod { font-size: 10px; color: rgba(191,234,255,.75); }
 .lbl-trad { font-size: 11px; opacity: .55; text-shadow: 0 0 5px #000; }
 .lbl-exalt { font-size: 10px; opacity: .8; text-shadow: 0 0 5px #000; }
 .lbl-tiny { font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--cyan-dim); }

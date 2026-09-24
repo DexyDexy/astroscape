@@ -9,7 +9,7 @@
     const S = this;
     const Astro = NS.Astro;
     S.mode = 'geo';
-    S.options = { aspects: true, bloom: true, starLabels: true, tradition: false };
+    S.options = { aspects: true, bloom: true, starLabels: true, tradition: false, constellations: false };
     S.selected = null;
     S.pickGlobe = false;
     S.onPick = opts.onPick || function () {};
@@ -243,6 +243,44 @@
       g2.setAttribute('color', new THREE.Float32BufferAttribute(brightCol, 3));
       const m2 = new THREE.PointsMaterial({ size: 5, sizeAttenuation: false, map: TEX_STAR, vertexColors: true, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false });
       starGroup.add(new THREE.Points(g2, m2));
+
+      // Фигуры созвездий: линии между звёздами и подписи. Зодиакальные ярче,
+      // остальные едва намечены, чтобы небо не превращалось в сетку.
+      const constGroup = new THREE.Group(); constGroup.visible = false; scene.add(constGroup);
+      S.constLabels = [];
+      (function buildConstellations() {
+        if (!NS.CONSTELLATIONS_FIG) return;
+        const R = 299;                                  // чуть внутри слоя ярких звёзд
+        const pt = (ra, dec) => {
+          const a = ra * DEG, d = dec * DEG, c = Math.cos(d);
+          return [R * c * Math.cos(a), R * Math.sin(d), -R * c * Math.sin(a)];
+        };
+        const zod = [], rest = [];
+        const lang = (NS.I18N && NS.I18N.lang) || 'en';
+        NS.CONSTELLATIONS_FIG.forEach(cf => {
+          const arr = cf.z ? zod : rest;
+          cf.l.forEach(path => {
+            for (let i = 1; i < path.length; i++) {
+              const a = pt(path[i - 1][0], path[i - 1][1]), b = pt(path[i][0], path[i][1]);
+              arr.push(a[0], a[1], a[2], b[0], b[1], b[2]);
+            }
+          });
+          const p = pt(cf.at[0], cf.at[1]);
+          const l = makeLabel(cf.n[lang] || cf.n.la || cf.id, 'lbl-const' + (cf.z ? ' zod' : ''));
+          l.position.set(p[0], p[1], p[2]);
+          l.userData = { names: cf.n, zodiac: cf.z };
+          constGroup.add(l); S.constLabels.push(l);
+        });
+        constGroup.add(segments(zod, '#bfeaff', 0.55));
+        constGroup.add(segments(rest, '#7fd7ff', 0.16));
+      })();
+      S.setConstLang = function (code) {
+        S.constLabels.forEach(l => {
+          const n = l.userData.names;
+          l.el.textContent = n[code] || n.la || '';
+        });
+      };
+      S.constGroup = constGroup;
 
       // небесный экватор
       const eq = circle(NS.EQUATOR_R, '#7fd7ff', 0.16, 'xz', 256);
@@ -1212,8 +1250,9 @@
       camera.position.set(0, 0, 0);
       camera.up.copy(skyZ);
       camera.lookAt(skyDir);
-      // подписи звёзд под горизонтом прячем
+      // подписи звёзд и созвездий под горизонтом прячем
       if (S.options.starLabels) S.starLabels.forEach(l => { l.visible = l.position.dot(skyZ) > 0; });
+      if (S.options.constellations) S.constLabels.forEach(l => { l.visible = l.position.dot(skyZ) > 0; });
     }
     let skyDrag = null;
     renderer.domElement.addEventListener('pointerdown', e => {
@@ -1240,6 +1279,7 @@
       S.options[k] = v;
       if (k === 'starLabels') S.starLabels.forEach(l => { l.visible = v; });
       if (k === 'tradition') tradGroup.visible = v;
+      if (k === 'constellations') S.constGroup.visible = v;
     };
     S.setSelected = function (id) { S.selected = id; };
     S.setPickGlobe = function (on) { S.pickGlobe = on; renderer.domElement.style.cursor = on ? 'crosshair' : ''; };

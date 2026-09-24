@@ -44,6 +44,7 @@
       reading: 'Толкование',
       translated: 'перевод',
       btnTrad: '☿ Традиция', btnTradTitle: 'Традиционный слой: управители знаков и градусы экзальтаций (D)', decan: 'Декан', houseWord: 'Дом', dignity: 'Достоинство',
+      btnConst: '✦ Созвездия', btnConstTitle: 'Фигуры созвездий: зодиакальные ярче, остальные едва намечены (C)',
       houseSystem: 'Дома', thHouse: 'Дом', thHouseTitle: 'Астрологический дом и достоинство планеты', dayChart: 'дневная карта', nightChart: 'ночная карта', untilTime: 'до {t}',
       houseSys: { placidus: 'Плацидус', whole: 'цельнознаковые', equal: 'равные' },
       dign: { domicile: 'обитель', exalt: 'экзальтация', detriment: 'изгнание', fall: 'падение' },
@@ -149,6 +150,7 @@
       reading: 'Reading',
       translated: 'translated',
       btnTrad: '☿ Tradition', btnTradTitle: 'Traditional layer: sign rulers and degrees of exaltation (D)', decan: 'Decan', houseWord: 'House', dignity: 'Dignity',
+      btnConst: '✦ Constellations', btnConstTitle: 'Constellation figures: zodiacal brighter, the rest barely sketched (C)',
       houseSystem: 'Houses', thHouse: 'Hse', thHouseTitle: 'Astrological house and planetary dignity', dayChart: 'day chart', nightChart: 'night chart', untilTime: 'until {t}',
       houseSys: { placidus: 'Placidus', whole: 'whole sign', equal: 'equal' },
       dign: { domicile: 'domicile', exalt: 'exaltation', detriment: 'detriment', fall: 'fall' },
@@ -236,6 +238,7 @@
   }
 
   // Подставить локализованные имена в справочники данных
+  // (подписи созвездий в сцене обновляются отдельно: они живут в 3D)
   function applyData(L) {
     NS.BODIES.forEach(b => { b.name = L.planets[b.id]; });
     NS.ZODIAC.forEach((z, i) => { z.name = L.zodiac[i]; });

@@ -48,7 +48,7 @@
   }
   // Свечение и подписи звёзд включены везде, кроме телефонов: там они съедают память и кадры
   // При первом запуске включено всё, что делает картину полной
-  const optionsSaved = { aspects: true, bloom: true, starLabels: true, tradition: true };
+  const optionsSaved = { aspects: true, bloom: true, starLabels: true, tradition: true, constellations: false };
   const PREFS_VERSION = 4;   // 4: при первом запуске включены все слои, включая традицию
   function save() {
     try { localStorage.setItem('astroscape.state', JSON.stringify({ observer: state.observer, options: scene ? scene.options : optionsSaved, prefsVersion: PREFS_VERSION })); } catch (e) {}
@@ -355,7 +355,7 @@
   }, 9000);
 
   // ---------- запуск ----------
-  NS.VERSION = '1.7.0';
+  NS.VERSION = '1.8.0';
   NS.boot = function (libs) {
     try { bootInner(libs); } catch (e) { showBootError((e && e.message) || e); throw e; }
   };
@@ -421,6 +421,7 @@
     $('btn-stars').classList.toggle('on', scene.options.starLabels);
     $('btn-bloom').classList.toggle('on', scene.options.bloom);
     $('btn-trad').classList.toggle('on', scene.options.tradition);
+    $('btn-const').classList.toggle('on', scene.options.constellations);
     $('btn-view').classList.toggle('on', state.mode === 'helio');
     $('btn-view').textContent = state.mode === 'helio' ? NS.t('btnGeo') : NS.t('btnHelio');
     $('btn-sky').classList.toggle('on', state.mode === 'sky');
@@ -511,6 +512,7 @@
     $('btn-stars').addEventListener('click', () => toggleOption('starLabels'));
     $('btn-bloom').addEventListener('click', () => toggleOption('bloom'));
     $('btn-trad').addEventListener('click', () => toggleOption('tradition'));
+    $('btn-const').addEventListener('click', () => toggleOption('constellations'));
 
     window.addEventListener('keydown', e => {
       if (e.target.matches('input, select, textarea')) return;
@@ -526,6 +528,7 @@
       else if (k === 'a' || k === 'ф') toggleOption('aspects');
       else if (k === 'b' || k === 'и') toggleOption('bloom');
       else if (k === 'd' || k === 'в') toggleOption('tradition');
+      else if (k === 'c' || k === 'с') toggleOption('constellations');
       else if (k === 's' || k === 'ы') toggleOption('starLabels');
       else if (k === 'l' || k === 'д') openLocation();
       else if (e.key === '?' || e.key === '/') $('modal-help').hidden = !$('modal-help').hidden;

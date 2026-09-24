@@ -115,5 +115,7 @@ js/astro.js     расчёты поверх astronomy-engine (положения
 js/scene.js     3D-сцена на three.js
 js/ui.js        DOM-панели и форматирование
 js/app.js       состояние, время, связывание
+js/constellations.js  фигуры созвездий: d3-celestial (Olaf Frohn, BSD-2-Clause)
+js/quotes.js    исторические выдержки: Alan Leo 1899, Max Heindel 1918 (общественное достояние)
 assets/night-lights.jpg  ночные огни: NASA Earth Observatory, Black Marble 2016
 ```
