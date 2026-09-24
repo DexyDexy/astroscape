@@ -39,16 +39,17 @@
         const opts = Object.assign({}, s.options);
         // Значение свечения записывалось автоматически, а не выбиралось пользователем,
         // поэтому после смены умолчания один раз берём новое, а не сохранённое.
-        if ((s.prefsVersion || 1) < PREFS_VERSION) delete opts.bloom;
+        // со сменой набора умолчаний старые сохранённые значения слоёв не переносим
+        if ((s.prefsVersion || 1) < PREFS_VERSION) { delete opts.bloom; delete opts.tradition; delete opts.starLabels; }
         Object.assign(optionsSaved, opts);
       }
     } catch (e) {}
     return hasObserver;
   }
-  const smallScreen = Math.min(window.innerWidth, window.innerHeight) <= 820;
   // Свечение и подписи звёзд включены везде, кроме телефонов: там они съедают память и кадры
-  const optionsSaved = { aspects: true, bloom: !smallScreen, starLabels: !smallScreen, tradition: false };
-  const PREFS_VERSION = 3;   // 3: свечение снова включено по умолчанию
+  // При первом запуске включено всё, что делает картину полной
+  const optionsSaved = { aspects: true, bloom: true, starLabels: true, tradition: true };
+  const PREFS_VERSION = 4;   // 4: при первом запуске включены все слои, включая традицию
   function save() {
     try { localStorage.setItem('astroscape.state', JSON.stringify({ observer: state.observer, options: scene ? scene.options : optionsSaved, prefsVersion: PREFS_VERSION })); } catch (e) {}
   }
