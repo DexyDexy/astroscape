@@ -279,7 +279,9 @@
     const src = q.url
       ? '<a href="' + q.url + '" target="_blank" rel="noopener">' + q.source + '</a>'
       : q.source;
-    return '<span class="qt">« ' + q.text + ' »<span class="qt-src">' + src + '</span></span>';
+    const tip = q.original ? ' title="' + q.original.replace(/"/g, '&quot;') + '"' : '';
+    const mark = q.original ? ' <span class="qt-tr">' + t('translated') + '</span>' : '';
+    return '<span class="qt"' + tip + '>« ' + q.text + ' »<span class="qt-src">' + src + mark + '</span></span>';
   }
 
   // ---------- толкование обстановки ----------

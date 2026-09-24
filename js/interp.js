@@ -24,14 +24,16 @@
   }
   function planetName(id) { return (NS.BODY[id] && NS.BODY[id].name) || id; }
   // Историческая выдержка к строке о знаке светила: включается кнопкой «Традиция».
-  // Текст показывается в оригинале и с указанием источника — это документ эпохи,
-  // а не наше толкование, поэтому мы его не переводим и не переписываем.
+  // Показываем перевод на язык интерфейса, оригинал остаётся во всплывающей
+  // подсказке, а источник подписан всегда: это документ эпохи, а не наше толкование.
   function quote(bodyId, signIdx) {
     if (!NS.QUOTES || !NS.QUOTES.body) return null;
     const rec = NS.QUOTES.body[bodyId] && NS.QUOTES.body[bodyId][signIdx];
     if (!rec) return null;
     const src = NS.QUOTES.sources[rec.s] || {};
-    return { text: rec.t, source: src.label || '', url: src.url || '' };
+    const lang = (NS.I18N && NS.I18N.lang) || 'en';
+    const tr = NS.QUOTE_TR && NS.QUOTE_TR[lang] && NS.QUOTE_TR[lang][bodyId + '.' + signIdx];
+    return { text: tr || rec.t, original: tr ? rec.t : '', source: src.label || '', url: src.url || '' };
   }
   function quoteFor(ctx, bodyId, signIdx) {
     return ctx.withQuotes ? quote(bodyId, signIdx) : null;
