@@ -15,6 +15,7 @@
     S.onPick = opts.onPick || function () {};
     S.onGlobePick = opts.onGlobePick || function () {};
     S.onInteract = opts.onInteract || function () {};
+    S.cityTime = opts.cityTime || null;      // (город, дата) → строка с местным временем
 
     // ------------------------------------------------------------ базовое
     // На телефонах ограничиваем плотность пикселей: иначе буферы постобработки
@@ -714,13 +715,50 @@
         const v = new THREE.Vector3(R * c * Math.cos(lo), R * Math.sin(la), -R * c * Math.sin(lo));
         pos.push(v.x, v.y, v.z);
         const l = makeLabel(cty.name, 'lbl-city'); l.position.copy(v); l.visible = false;
-        cityGroup.add(l); cityLabels.push({ obj: l, pos: v, major: !!cty.major });
+        cityGroup.add(l); cityLabels.push({ obj: l, pos: v, major: !!cty.major, city: cty });
       });
+      cityInfo = makeLabel('', 'lbl-citytime'); cityInfo.visible = false; cityInfo.center.set(0.5, 1);
+      cityGroup.add(cityInfo); citySel = null; cityHover = null; cityShown = null;
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
       const m = new THREE.PointsMaterial({ size: 4, sizeAttenuation: false, map: TEX_STAR, color: C('#f5c56b'), transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
       cityGroup.add(new THREE.Points(g, m));
     };
+    // Местное время города по щелчку. Работает в ближней трети хода приближения:
+    // колесо и щипок меняют расстояние в разы, поэтому треть берём по логарифму.
+    // citySel — город, закреплённый щелчком или касанием; cityHover — под курсором мыши.
+    // Плашка одна: показывает город под курсором, а если курсор не на городе — закреплённый.
+    let cityInfo = null, citySel = null, cityHover = null, cityShown = null, cityText = '';
+    function cityZoomOk() {
+      const t = Math.log(camera.position.length() / controls.minDistance) / Math.log(controls.maxDistance / controls.minDistance);
+      return S.mode === 'geo' && !S.pickGlobe && t <= 1 / 3;
+    }
+    const cityV = new THREE.Vector3();
+    // Ближайший к указателю город на видимой стороне глобуса; tol — допуск в пикселях
+    function cityAt(x, y, tol) {
+      if (!cityLabels.length || !cityZoomOk()) return null;
+      camLocal.copy(camera.position); earthGroup.worldToLocal(camLocal);
+      let best = null, bd = tol;
+      for (const c of cityLabels) {
+        if (c.pos.dot(camLocal) <= c.pos.lengthSq()) continue;        // обратная сторона
+        cityV.copy(c.pos); earthGroup.localToWorld(cityV); cityV.project(camera);
+        const d = Math.hypot((cityV.x + 1) / 2 * window.innerWidth - x, (1 - cityV.y) / 2 * window.innerHeight - y);
+        if (d < bd) { bd = d; best = c; }
+      }
+      return best;
+    }
+    function selectCity(c) { citySel = c && c !== citySel ? c : null; }
+    function updateCityInfo(date) {
+      if (!cityInfo) return;
+      if (!cityZoomOk()) { citySel = null; cityHover = null; }
+      const c = cityHover || citySel;
+      if (c !== cityShown) { cityShown = c; cityText = ''; if (c) cityInfo.position.copy(c.pos); }
+      if (!c) { cityInfo.visible = false; return; }
+      camLocal.copy(camera.position); earthGroup.worldToLocal(camLocal);
+      cityInfo.visible = c.pos.dot(camLocal) > c.pos.lengthSq();
+      const txt = S.cityTime ? S.cityTime(c.city, date) : c.city.name;
+      if (txt !== cityText) { cityText = txt; cityInfo.el.innerHTML = txt; }
+    }
     const camLocal = new THREE.Vector3();
     function updateCityLabels() {
       if (!cityLabels.length) return;
@@ -730,8 +768,8 @@
       camLocal.copy(camera.position); earthGroup.worldToLocal(camLocal);
       const showMinor = dist < 2.6;   // второстепенные города — только при сильном приближении
       cityLabels.forEach(c => {
-        // подпись видна, если точка обращена к камере
-        c.obj.visible = (c.major || showMinor) && c.pos.dot(camLocal) > c.pos.lengthSq();
+        // подпись видна, если точка обращена к камере; у выбранного города её заменяет плашка времени
+        c.obj.visible = c !== cityShown && (c.major || showMinor) && c.pos.dot(camLocal) > c.pos.lengthSq();
       });
     }
 
@@ -1067,6 +1105,7 @@
       horGroup.matrix.copy(tmpM);
       horGroup.matrixWorldNeedsUpdate = true;
 
+      updateCityInfo(f.date);
       chartGroup.visible = S.mode === 'geo';
       if (chartGroup.visible) setCusps(f.houses);
       if (S.mode === 'helio') updateHelio(f); else updateGeo(f);
@@ -1321,7 +1360,9 @@
     let downX = 0, downY = 0;
     renderer.domElement.addEventListener('pointerdown', e => { downX = e.clientX; downY = e.clientY; });
     renderer.domElement.addEventListener('pointerup', e => {
-      if (Math.hypot(e.clientX - downX, e.clientY - downY) > 4) return;
+      // палец дрожит сильнее мыши: у касания допуск на «это был щелчок, а не жест» шире
+      const touch = e.pointerType === 'touch' || e.pointerType === 'pen';
+      if (Math.hypot(e.clientX - downX, e.clientY - downY) > (touch ? 10 : 4)) return;
       ptr.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
       ray.setFromCamera(ptr, camera);
       if (S.pickGlobe && S.mode === 'geo') {
@@ -1340,8 +1381,12 @@
       const hits = ray.intersectObjects(objs, false);
       if (hits.length) {
         const pk = pickables.find(p => p.obj === hits[0].object);
-        if (pk) S.onPick(pk.id);
+        if (pk) { S.onPick(pk.id); return; }
       }
+      // город: у пальца зона попадания вдвое шире, чем у курсора
+      const cty = cityAt(e.clientX, e.clientY, touch ? 30 : 14);
+      if (cty) selectCity(cty);
+      else if (citySel) selectCity(null);          // щелчок мимо закрывает плашку
     });
     renderer.domElement.addEventListener('pointermove', e => {
       if (S.pickGlobe) return;
@@ -1352,8 +1397,15 @@
       hoverLabel = lt ? lt.el : null;
       if (hoverLabel) hoverLabel.classList.add('hover');
       const objs = pickables.filter(p => isVisible(p.obj)).map(p => p.obj);
-      renderer.domElement.style.cursor = (lt || ray.intersectObjects(objs, false).length) ? 'pointer' : '';
+      // Мышь над глобусом: плашка времени встаёт на ближайший к курсору город,
+      // целиться в точку не нужно. Указатель-рука — только вплотную к городу.
+      const overGlobe = e.pointerType === 'mouse' && e.buttons === 0 && cityZoomOk()
+        && ray.intersectObject(earthMesh, false).length > 0;
+      cityHover = overGlobe ? cityAt(e.clientX, e.clientY, Infinity) : null;
+      const nearCity = overGlobe && cityAt(e.clientX, e.clientY, 14);
+      renderer.domElement.style.cursor = (lt || nearCity || ray.intersectObjects(objs, false).length) ? 'pointer' : '';
     });
+    renderer.domElement.addEventListener('pointerleave', () => { cityHover = null; });
     let hoverLabel = null;
     function isVisible(o) { let x = o; while (x) { if (!x.visible) return false; x = x.parent; } return true; }
 

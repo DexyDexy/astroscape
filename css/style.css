@@ -376,6 +376,15 @@ table.planets td.alt .dn { color: var(--muted); }
 .lbl-exalt { font-size: 10px; opacity: .8; text-shadow: 0 0 5px #000; }
 .lbl-tiny { font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--cyan-dim); }
 .lbl-sun { font-size: 12px; letter-spacing: .1em; color: var(--gold); padding: 2px 8px 3px; border-top: 1px solid currentColor; background: rgba(0, 0, 0, .55); }
+/* плашка местного времени над выбранным городом */
+.lbl-citytime { display: flex; flex-direction: column; align-items: center; gap: 1px; transform: translateY(-9px);
+  padding: 5px 10px 6px; background: rgba(4, 10, 18, .88); border: 1px solid rgba(224,160,74,.7);
+  color: var(--text); white-space: nowrap; pointer-events: none; }
+.lbl-citytime::after { content: ''; position: absolute; left: 50%; bottom: -5px; width: 8px; height: 8px; margin-left: -4px;
+  background: rgba(4, 10, 18, .95); border-right: 1px solid rgba(224,160,74,.7); border-bottom: 1px solid rgba(224,160,74,.7); transform: rotate(45deg); }
+.lbl-citytime b { font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--ochre); }
+.lbl-citytime .ct-time { font-family: var(--font-mono); font-size: 20px; line-height: 1.1; color: #fff; }
+.lbl-citytime small { font-family: var(--font-mono); font-size: 9.5px; color: var(--muted); }
 .lbl-city { font-size: 9px; letter-spacing: .08em; color: rgba(245,197,107,.8); transform: translate(6px, -10px); text-shadow: 0 0 4px #000, 0 0 2px #000; }
 .lbl-here { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--ochre); transform: translate(10px, -14px); }
 

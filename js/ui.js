@@ -284,6 +284,30 @@
     return '<span class="qt"' + tip + '>« ' + q.text + ' »<span class="qt-src">' + src + mark + '</span></span>';
   }
 
+  // ---------- местное время города на глобусе ----------
+  const tzFmt = {};
+  function tzParts(tz, date) {
+    try {
+      const key = tz + '|' + NS.I18N.intl;
+      const f = tzFmt[key] || (tzFmt[key] = {
+        time: new Intl.DateTimeFormat(NS.I18N.intl, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: tz }),
+        day: new Intl.DateTimeFormat(NS.I18N.intl, { weekday: 'short', day: 'numeric', month: 'short', timeZone: tz }),
+        off: new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'shortOffset', hour: '2-digit' }),
+      });
+      const off = (f.off.formatToParts(date).find(p => p.type === 'timeZoneName') || {}).value || '';
+      return { time: f.time.format(date), day: f.day.format(date), off: off.replace('GMT', 'UTC') };
+    } catch (e) { return null; }
+  }
+  function cityTime(city, date) {
+    let p = city.tz ? tzParts(city.tz, date) : null;
+    if (!p) {                                   // пояса нет в браузере: среднее солнечное время по долготе
+      const d = new Date(date.getTime() + city.lon / 15 * 3600000);
+      p = { time: pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()), day: '', off: '≈' };
+    }
+    return '<b>' + city.name + '</b><span class="ct-time">' + p.time + '</span>' +
+           '<small>' + (p.day ? p.day + ' · ' : '') + p.off + '</small>';
+  }
+
   // ---------- толкование обстановки ----------
   function renderReading(r) {
     const list = $('reading-list');
@@ -294,5 +318,5 @@
     setText('reading-hint', r.items.length ? r.items.length + '' : '');
   }
 
-  NS.UI = { renderReading, time: fmt.time, renderSituation, renderClock, buildRows, renderPlanets, renderDetail, renderMoon, renderSun, renderRetro, renderAspects, renderEclipses, initPanels, toast, fillPresets, drawMoon };
+  NS.UI = { cityTime, renderReading, time: fmt.time, renderSituation, renderClock, buildRows, renderPlanets, renderDetail, renderMoon, renderSun, renderRetro, renderAspects, renderEclipses, initPanels, toast, fillPresets, drawMoon };
 })(window.AstroScape);

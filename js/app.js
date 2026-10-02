@@ -66,7 +66,7 @@
   function cityList() {
     return NS.PRESETS
       .filter(p => p.en !== 'North Pole' && p.en !== 'Greenwich')
-      .map(p => ({ name: p.name, lat: p.lat, lon: p.lon, major: p.m === 1 }));
+      .map(p => ({ name: p.name, lat: p.lat, lon: p.lon, major: p.m === 1, tz: NS.CITY_TZ[p.en] }));
   }
 
   // ---------- место при первом запуске ----------
@@ -355,7 +355,7 @@
   }, 9000);
 
   // ---------- запуск ----------
-  NS.VERSION = '1.8.0';
+  NS.VERSION = '1.9.0';
   NS.boot = function (libs) {
     try { bootInner(libs); } catch (e) { showBootError((e && e.message) || e); throw e; }
   };
@@ -376,6 +376,7 @@
     scene = new NS.Scene(libs, {
       container: $('scene'), labels: $('labels'),
       onPick: select,
+      cityTime: (city, date) => UI.cityTime(city, date),
       onGlobePick: (lat, lon) => {
         $('loc-lat').value = lat.toFixed(4); $('loc-lon').value = lon.toFixed(4);
         $('loc-preset').value = ''; $('loc-label').value = '';
