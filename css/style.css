@@ -346,6 +346,12 @@ table.planets td.alt .dn { color: var(--muted); }
 .note { font-size: 11px; color: var(--muted); margin: 12px 0 0; line-height: 1.5; }
 .help p { margin: 0 0 9px; line-height: 1.55; font-size: 12.5px; }
 .help b { color: var(--cyan); font-weight: 600; }
+/* подпись автора и связь в конце справки */
+.help-credit { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: 0 12px 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.help-credit span { font-size: 12px; letter-spacing: .06em; color: var(--muted); }   /* без капса: имя BrutalRobots пишется именно так */
+.help-credit b { color: var(--text); font-weight: 600; }
+.help-credit .btn { text-decoration: none; padding: 7px 16px; }
 
 /* 3D labels */
 .lbl { font-family: var(--font-ui); pointer-events: none; white-space: nowrap; user-select: none; }
