@@ -349,7 +349,7 @@ table.planets td.alt .dn { color: var(--muted); }
 /* подпись автора и связь в конце справки */
 .help-credit { display: flex; align-items: center; justify-content: space-between; gap: 12px;
   margin: 0 12px 12px; padding-top: 12px; border-top: 1px solid var(--line); }
-.help-credit span { font-size: 12px; letter-spacing: .06em; color: var(--muted); }   /* без капса: имя BrutalRobots пишется именно так */
+.help-credit span { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
 .help-credit b { color: var(--text); font-weight: 600; }
 .help-credit .btn { text-decoration: none; padding: 7px 16px; }
 
