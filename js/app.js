@@ -355,7 +355,7 @@
   }, 9000);
 
   // ---------- запуск ----------
-  NS.VERSION = '1.9.1';
+  NS.VERSION = '1.9.2';
   NS.boot = function (libs) {
     try { bootInner(libs); } catch (e) { showBootError((e && e.message) || e); throw e; }
   };
@@ -447,6 +447,35 @@
   }
   function toggleMode() { setMode(state.mode === 'helio' ? 'geo' : 'helio'); }
 
+  // Адрес для связи собирается здесь, а не лежит в разметке целиком: так его
+  // реже подбирают спам-боты. На телефоне адрес — ссылка в почту, на компьютере
+  // просто текст: там почтовой программы часто нет, адрес удобнее скопировать.
+  function initContact() {
+    const mail = ['brutal_robots', 'proton.me'].join('@');
+    const a = $('contact-mail'), btn = $('contact-copy');
+    if (!a || !btn) return;
+    a.textContent = mail;
+    if (window.matchMedia && matchMedia('(pointer: coarse)').matches) a.href = 'mailto:' + mail;
+    let timer = null;
+    const done = ok => {
+      btn.textContent = ok ? 'Copied' : 'Select & copy';
+      clearTimeout(timer); timer = setTimeout(() => { btn.textContent = 'Copy'; }, 1600);
+    };
+    btn.addEventListener('click', () => {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(mail).then(() => done(true), () => done(fallbackCopy()));
+      } else done(fallbackCopy());
+    });
+    // запасной путь для старых браузеров и страниц без https
+    function fallbackCopy() {
+      try {
+        const r = document.createRange(); r.selectNodeContents(a);
+        const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        return document.execCommand('copy');
+      } catch (e) { return false; }
+    }
+  }
+
   function bind() {
     $('btn-play').addEventListener('click', () => { state.playing = !state.playing; if (state.playing && state.live) state.live = state.speed === 1; updateTimeUI(); });
     $('btn-now').addEventListener('click', goNow);
@@ -492,6 +521,7 @@
     $('modal-location').addEventListener('click', e => { if (e.target === $('modal-location')) closeLocation(); });
 
     $('btn-help').addEventListener('click', () => { $('modal-help').hidden = false; });
+    initContact();
     $('lang').addEventListener('change', e => NS.I18N.setLang(e.target.value));
     $('help-close').addEventListener('click', () => { $('modal-help').hidden = true; });
     $('modal-help').addEventListener('click', e => { if (e.target === $('modal-help')) $('modal-help').hidden = true; });
